@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de Notas — Franklin Silva</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+        <span>EduDash</span>
+      </div>
+      <nav class="nav">
+        <a class="nav-item active" href="#dashboard" data-page="dashboard">
+          <i class="fa-solid fa-chart-pie"></i> Dashboard
+        </a>
+        <a class="nav-item" href="#turmas" data-page="turmas">
+          <i class="fa-solid fa-chalkboard-user"></i> Turmas
+        </a>
+        <a class="nav-item" href="#alunos" data-page="alunos">
+          <i class="fa-solid fa-user-graduate"></i> Alunos
+        </a>
+        <a class="nav-item" href="#disciplinas" data-page="disciplinas">
+          <i class="fa-solid fa-book"></i> Disciplinas
+        </a>
+        <a class="nav-item" href="#avaliacoes" data-page="avaliacoes">
+          <i class="fa-solid fa-clipboard-list"></i> Avaliações
+        </a>
+        <a class="nav-item" href="#configuracoes" data-page="configuracoes">
+          <i class="fa-solid fa-gear"></i> Configurações
+        </a>
+      </nav>
+      <button class="logout-btn" id="logoutBtn" type="button">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i> Sair
+      </button>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input id="searchInput" type="search" placeholder="Buscar aluno..." />
+        </div>
+        <div class="topbar-right">
+          <button class="icon-btn" type="button" title="Notificações"><i class="fa-regular fa-bell"></i></button>
+          <div class="user-chip">
+            <div class="avatar">FS</div>
+            <div>
+              <strong>Franklin Silva</strong>
+              <small>Professor</small>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- DASHBOARD -->
+      <section id="page-dashboard" class="page active">
+        <section class="welcome">
+          <div class="welcome-text">
+            <h1>Dashboard de Notas — Franklin Silva</h1>
+            <p>Acompanhe o desempenho dos alunos. Clique nos gráficos para filtrar os dados.</p>
+          </div>
+          <div class="welcome-badge">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span>Filtro cruzado ativo</span>
+          </div>
+        </section>
+
+        <section class="filters">
+          <div class="filter-group">
+            <label for="filterSerie">Série</label>
+            <select id="filterSerie">
+              <option value="">Todas</option>
+              <option value="1º Ano">1º Ano</option>
+              <option value="2º Ano">2º Ano</option>
+              <option value="3º Ano">3º Ano</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="filterTurma">Turma</label>
+            <select id="filterTurma">
+              <option value="">Todas</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="filterDisciplina">Disciplina</label>
+            <select id="filterDisciplina">
+              <option value="">Todas (média geral)</option>
+              <option value="matematica">Matemática</option>
+              <option value="portugues">Português</option>
+              <option value="historia">História</option>
+              <option value="geografia">Geografia</option>
+              <option value="biologia">Biologia</option>
+              <option value="fisica">Física</option>
+              <option value="quimica">Química</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="filterStatus">Situação</label>
+            <select id="filterStatus">
+              <option value="">Todas</option>
+              <option value="aprovado">Aprovados (≥ 6,0)</option>
+              <option value="recuperacao">Recuperação (4–5,9)</option>
+              <option value="reprovado">Reprovados (&lt; 4,0)</option>
+            </select>
+          </div>
+          <button id="clearFilters" class="clear-btn" type="button">
+            <i class="fa-solid fa-rotate-left"></i> Limpar filtros
+          </button>
+        </section>
+
+        <div id="activeChips" class="chips" hidden></div>
+
+        <section class="kpis">
+          <article class="kpi">
+            <div class="kpi-icon blue"><i class="fa-solid fa-users"></i></div>
+            <div>
+              <span class="kpi-label">Alunos</span>
+              <strong id="kpiAlunos" class="kpi-value">0</strong>
+            </div>
+          </article>
+          <article class="kpi">
+            <div class="kpi-icon green"><i class="fa-solid fa-chart-line"></i></div>
+            <div>
+              <span class="kpi-label">Média Geral</span>
+              <strong id="kpiMedia" class="kpi-value">0.0</strong>
+            </div>
+          </article>
+          <article class="kpi">
+            <div class="kpi-icon teal"><i class="fa-solid fa-circle-check"></i></div>
+            <div>
+              <span class="kpi-label">Taxa de Aprovação</span>
+              <strong id="kpiAprovacao" class="kpi-value">0%</strong>
+            </div>
+          </article>
+          <article class="kpi">
+            <div class="kpi-icon orange"><i class="fa-solid fa-trophy"></i></div>
+            <div>
+              <span class="kpi-label">Melhor Média</span>
+              <strong id="kpiMelhor" class="kpi-value">—</strong>
+              <small id="kpiMelhorNome" class="kpi-sub">—</small>
+            </div>
+          </article>
+        </section>
+
+        <section class="charts-grid">
+          <article class="card chart-card">
+            <div class="card-head">
+              <h2>Média por Disciplina</h2>
+              <span class="hint">Clique na barra para filtrar</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chartDisciplinas"></canvas>
+            </div>
+          </article>
+          <article class="card chart-card">
+            <div class="card-head">
+              <h2>Distribuição por Série</h2>
+              <span class="hint">Clique no setor para filtrar</span>
+            </div>
+            <div class="chart-wrap chart-wrap--sm">
+              <canvas id="chartSeries"></canvas>
+            </div>
+          </article>
+          <article class="card chart-card">
+            <div class="card-head">
+              <h2>Média por Turma</h2>
+              <span class="hint">Clique para ver detalhes da turma</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chartTurmas"></canvas>
+            </div>
+          </article>
+          <article class="card chart-card">
+            <div class="card-head">
+              <h2>Situação dos Alunos</h2>
+              <span class="hint">Clique no setor para filtrar</span>
+            </div>
+            <div class="chart-wrap chart-wrap--sm">
+              <canvas id="chartStatus"></canvas>
+            </div>
+          </article>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="card">
+            <div class="card-head">
+              <h2>Top 8 Alunos</h2>
+              <span class="hint">Clique na barra para ver o aluno</span>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="chartTop"></canvas>
+            </div>
+          </article>
+          <article class="card table-card">
+            <div class="card-head">
+              <h2>Lista de Alunos</h2>
+              <span id="tableCount" class="hint">0 registros</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Aluno</th>
+                    <th>Série</th>
+                    <th>Turma</th>
+                    <th>Média</th>
+                    <th>Situação</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      </section>
+
+      <!-- TURMAS -->
+      <section id="page-turmas" class="page">
+        <section class="welcome welcome--compact">
+          <div class="welcome-text">
+            <h1>Turmas — Franklin Silva</h1>
+            <p>Selecione uma turma para ver o desempenho detalhado dos alunos.</p>
+          </div>
+        </section>
+
+        <div id="turmasOverview">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label for="turmaSerieFilter">Filtrar por série</label>
+              <select id="turmaSerieFilter">
+                <option value="">Todas as séries</option>
+                <option value="1º Ano">1º Ano</option>
+                <option value="2º Ano">2º Ano</option>
+                <option value="3º Ano">3º Ano</option>
+              </select>
+            </div>
+          </div>
+          <div id="turmaCards" class="turma-cards"></div>
+        </div>
+
+        <div id="turmaDetail" class="turma-detail" hidden>
+          <button id="backTurmas" class="back-btn" type="button">
+            <i class="fa-solid fa-arrow-left"></i> Voltar para turmas
+          </button>
+
+          <section class="welcome welcome--compact">
+            <div class="welcome-text">
+              <h1 id="turmaDetailTitle">Turma</h1>
+              <p id="turmaDetailSubtitle">Detalhes da turma selecionada</p>
+            </div>
+          </section>
+
+          <section class="kpis">
+            <article class="kpi">
+              <div class="kpi-icon blue"><i class="fa-solid fa-users"></i></div>
+              <div>
+                <span class="kpi-label">Alunos</span>
+                <strong id="turmaKpiAlunos" class="kpi-value">0</strong>
+              </div>
+            </article>
+            <article class="kpi">
+              <div class="kpi-icon green"><i class="fa-solid fa-chart-line"></i></div>
+              <div>
+                <span class="kpi-label">Média da Turma</span>
+                <strong id="turmaKpiMedia" class="kpi-value">0.0</strong>
+              </div>
+            </article>
+            <article class="kpi">
+              <div class="kpi-icon teal"><i class="fa-solid fa-circle-check"></i></div>
+              <div>
+                <span class="kpi-label">Aprovação</span>
+                <strong id="turmaKpiAprovacao" class="kpi-value">0%</strong>
+              </div>
+            </article>
+            <article class="kpi">
+              <div class="kpi-icon orange"><i class="fa-solid fa-star"></i></div>
+              <div>
+                <span class="kpi-label">Melhor Aluno</span>
+                <strong id="turmaKpiMelhor" class="kpi-value">—</strong>
+                <small id="turmaKpiMelhorNome" class="kpi-sub">—</small>
+              </div>
+            </article>
+          </section>
+
+          <section class="charts-grid">
+            <article class="card">
+              <div class="card-head"><h2>Desempenho por Disciplina</h2></div>
+              <div class="chart-wrap"><canvas id="chartTurmaDisc"></canvas></div>
+            </article>
+            <article class="card">
+              <div class="card-head"><h2>Situação na Turma</h2></div>
+              <div class="chart-wrap chart-wrap--sm"><canvas id="chartTurmaStatus"></canvas></div>
+            </article>
+          </section>
+
+          <article class="card table-card">
+            <div class="card-head">
+              <h2>Alunos da Turma</h2>
+              <span id="turmaTableCount" class="hint">0 registros</span>
+            </div>
+            <div class="table-wrap table-wrap--tall">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Aluno</th>
+                    <th>Mat.</th>
+                    <th>Port.</th>
+                    <th>Hist.</th>
+                    <th>Geo.</th>
+                    <th>Bio.</th>
+                    <th>Fís.</th>
+                    <th>Quím.</th>
+                    <th>Média</th>
+                    <th>Situação</th>
+                  </tr>
+                </thead>
+                <tbody id="turmaTableBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ALUNOS -->
+      <section id="page-alunos" class="page">
+        <section class="welcome welcome--compact">
+          <div class="welcome-text">
+            <h1>Alunos — Franklin Silva</h1>
+            <p>Lista completa dos alunos com notas e situação.</p>
+          </div>
+        </section>
+        <article class="card table-card">
+          <div class="card-head">
+            <h2>Todos os Alunos</h2>
+            <span id="alunosPageCount" class="hint">0 registros</span>
+          </div>
+          <div class="table-wrap table-wrap--tall">
+            <table>
+              <thead>
+                <tr>
+                  <th>Aluno</th>
+                  <th>Série</th>
+                  <th>Turma</th>
+                  <th>Média</th>
+                  <th>Situação</th>
+                </tr>
+              </thead>
+              <tbody id="alunosPageBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- DISCIPLINAS -->
+      <section id="page-disciplinas" class="page">
+        <section class="welcome welcome--compact">
+          <div class="welcome-text">
+            <h1>Disciplinas — Franklin Silva</h1>
+            <p>Médias e distribuição de desempenho por disciplina.</p>
+          </div>
+        </section>
+        <div id="disciplinaCards" class="disciplina-cards"></div>
+        <article class="card">
+          <div class="card-head"><h2>Comparativo de Médias</h2></div>
+          <div class="chart-wrap"><canvas id="chartDiscPage"></canvas></div>
+        </article>
+      </section>
+
+      <!-- AVALIAÇÕES -->
+      <section id="page-avaliacoes" class="page">
+        <section class="welcome welcome--compact">
+          <div class="welcome-text">
+            <h1>Avaliações — Franklin Silva</h1>
+            <p>Panorama de aprovação, recuperação e reprovação.</p>
+          </div>
+        </section>
+        <section class="kpis">
+          <article class="kpi">
+            <div class="kpi-icon green"><i class="fa-solid fa-circle-check"></i></div>
+            <div>
+              <span class="kpi-label">Aprovados</span>
+              <strong id="avKpiAprov" class="kpi-value">0</strong>
+            </div>
+          </article>
+          <article class="kpi">
+            <div class="kpi-icon orange"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div>
+              <span class="kpi-label">Em Recuperação</span>
+              <strong id="avKpiRec" class="kpi-value">0</strong>
+            </div>
+          </article>
+          <article class="kpi">
+            <div class="kpi-icon red"><i class="fa-solid fa-circle-xmark"></i></div>
+            <div>
+              <span class="kpi-label">Reprovados</span>
+              <strong id="avKpiRep" class="kpi-value">0</strong>
+            </div>
+          </article>
+          <article class="kpi">
+            <div class="kpi-icon teal"><i class="fa-solid fa-percent"></i></div>
+            <div>
+              <span class="kpi-label">Taxa de Aprovação</span>
+              <strong id="avKpiTaxa" class="kpi-value">0%</strong>
+            </div>
+          </article>
+        </section>
+        <section class="charts-grid">
+          <article class="card">
+            <div class="card-head"><h2>Distribuição Geral</h2></div>
+            <div class="chart-wrap chart-wrap--sm"><canvas id="chartAvStatus"></canvas></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h2>Situação por Série</h2></div>
+            <div class="chart-wrap"><canvas id="chartAvSerie"></canvas></div>
+          </article>
+        </section>
+      </section>
+
+      <!-- CONFIGURAÇÕES -->
+      <section id="page-configuracoes" class="page">
+        <section class="welcome welcome--compact">
+          <div class="welcome-text">
+            <h1>Configurações — Franklin Silva</h1>
+            <p>Preferências do painel de notas.</p>
+          </div>
+        </section>
+        <article class="card config-card">
+          <h2>Perfil do Professor</h2>
+          <div class="config-row"><span>Nome</span><strong>Franklin Silva</strong></div>
+          <div class="config-row"><span>Cargo</span><strong>Professor</strong></div>
+          <div class="config-row"><span>Painel</span><strong>Dashboard de Notas</strong></div>
+          <div class="config-row"><span>Alunos cadastrados</span><strong id="configAlunosTotal">50</strong></div>
+          <p class="config-note">Critério: Aprovado ≥ 6,0 · Recuperação 4,0–5,9 · Reprovado &lt; 4,0</p>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
