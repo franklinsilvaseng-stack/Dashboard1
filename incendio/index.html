@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FireBoard — Controle de Extintores</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script src="chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><i class="fa-solid fa-fire-extinguisher"></i></div>
+        <div>
+          <strong>FireBoard</strong>
+          <small>Sistema de Incêndio</small>
+        </div>
+      </div>
+
+      <div class="side-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="sideSearch" type="search" placeholder="Buscar local, nº..." />
+      </div>
+
+      <nav class="nav" id="sidebarNav">
+        <button type="button" class="nav-label" data-toggle="nav-main" aria-expanded="true">
+          <span>Menu principal</span>
+          <span class="nav-chevron">▾</span>
+        </button>
+        <div id="nav-main" class="nav-group">
+          <button type="button" class="nav-item active" data-page="dashboard">
+            <span class="nav-ico">▦</span> Dashboard
+          </button>
+          <button type="button" class="nav-item" data-page="precos">
+            <span class="nav-ico">R$</span> Valores de recarga
+          </button>
+          <button type="button" class="nav-item" data-page="extintores">
+            <span class="nav-ico">🧯</span> Extintores
+          </button>
+          <button type="button" class="nav-item" data-page="recargas">
+            <span class="nav-ico">↻</span> Recargas por tipo
+          </button>
+          <button type="button" class="nav-item" data-page="th">
+            <span class="nav-ico">💧</span> Teste hidrostático
+          </button>
+          <button type="button" class="nav-item" data-page="locais">
+            <span class="nav-ico">📍</span> Locais
+          </button>
+          <button type="button" class="nav-item" data-page="vencimentos">
+            <span class="nav-ico">📅</span> Vencimentos
+          </button>
+          <button type="button" class="nav-item" data-page="departamentos">
+            <span class="nav-ico">🏢</span> Departamentos
+          </button>
+          <button type="button" class="nav-item" data-page="orcamento">
+            <span class="nav-ico">💰</span> Orçamento
+          </button>
+          <button type="button" class="nav-item" data-page="dados">
+            <span class="nav-ico">⬆</span> Alimentar dados
+          </button>
+        </div>
+
+        <button type="button" class="nav-label" data-toggle="nav-system" aria-expanded="true">
+          <span>Sistema</span>
+          <span class="nav-chevron">▾</span>
+        </button>
+        <div id="nav-system" class="nav-group">
+          <button type="button" class="nav-item" data-page="relatorios">
+            <span class="nav-ico">📄</span> Relatórios
+          </button>
+          <button type="button" class="nav-item" data-page="configuracoes">
+            <span class="nav-ico">⚙</span> Configurações
+          </button>
+        </div>
+      </nav>
+
+      <div class="upgrade">
+        <p>Conformidade em dia</p>
+        <span>Acompanhe recargas e testes hidrostáticos.</span>
+        <button type="button" id="btnRelatorio">Ver relatório</button>
+      </div>
+
+      <div class="profile">
+        <div class="avatar">FS</div>
+        <div>
+          <strong>Franklin Silva</strong>
+          <small>SESMT · Segurança</small>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="greeting">
+          <h1 id="greetingTitle">Bom dia, Franklin</h1>
+          <p>Painel de controle de extintores — status de recarga e teste hidrostático.</p>
+        </div>
+        <div class="topbar-actions">
+          <div class="date-chip">
+            <i class="fa-regular fa-calendar"></i>
+            <span id="todayDate"></span>
+          </div>
+          <button class="icon-btn" type="button" title="Alertas">
+            <i class="fa-regular fa-bell"></i>
+            <span class="badge" id="alertBadge">0</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- DASHBOARD -->
+      <section id="page-dashboard" class="page active">
+        <section class="kpi-row">
+          <article class="kpi-card">
+            <div class="kpi-top">
+              <span>Total de Extintores</span>
+              <div class="kpi-icon orange"><i class="fa-solid fa-fire-extinguisher"></i></div>
+            </div>
+            <strong id="kpiTotal">0</strong>
+            <div class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> Inventário ativo</div>
+            <canvas id="sparkTotal" class="sparkline" height="36"></canvas>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top">
+              <span>Recargas Válidas</span>
+              <div class="kpi-icon green"><i class="fa-solid fa-circle-check"></i></div>
+            </div>
+            <strong id="kpiValidos">0</strong>
+            <div class="kpi-trend up" id="kpiValidosTrend">+0%</div>
+            <canvas id="sparkValidos" class="sparkline" height="36"></canvas>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top">
+              <span>Extintores para recarga</span>
+              <div class="kpi-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            </div>
+            <strong id="kpiVencidos">0</strong>
+            <div class="kpi-trend down" id="kpiVencidosTrend">Atenção</div>
+            <canvas id="sparkVencidos" class="sparkline" height="36"></canvas>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top">
+              <span>Taxa de Conformidade</span>
+              <div class="kpi-icon orange"><i class="fa-solid fa-shield-halved"></i></div>
+            </div>
+            <strong id="kpiTaxa">0%</strong>
+            <div class="kpi-trend up" id="kpiTaxaTrend">Meta 100%</div>
+            <canvas id="sparkTaxa" class="sparkline" height="36"></canvas>
+          </article>
+        </section>
+
+        <section class="mid-grid">
+          <article class="card chart-card">
+            <div class="card-head">
+              <div>
+                <h2>Extintores por Local</h2>
+                <p class="sub">Distribuição do inventário</p>
+              </div>
+              <select id="filterDpto" class="select-mini">
+                <option value="">Todos os departamentos</option>
+              </select>
+            </div>
+            <div class="chart-wrap chart-wrap--bar">
+              <canvas id="chartLocais"></canvas>
+            </div>
+          </article>
+
+          <article class="card chart-card">
+            <div class="card-head">
+              <div>
+                <h2>Status das Recargas</h2>
+                <p class="sub">Em dia vs para recarga</p>
+              </div>
+            </div>
+            <div class="donut-layout">
+              <div class="chart-wrap chart-wrap--donut">
+                <canvas id="chartStatus"></canvas>
+                <div class="donut-center">
+                  <strong id="donutCenterValue">0</strong>
+                  <span>total</span>
+                </div>
+              </div>
+              <ul class="legend-list" id="statusLegend"></ul>
+            </div>
+          </article>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2>Extintores para recarga</h2>
+                <p class="sub">Prioridade de manutenção</p>
+              </div>
+              <button type="button" class="link-btn" data-page="vencimentos">Ver todos</button>
+            </div>
+            <ul class="tx-list" id="vencidosList"></ul>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2>Próximas Recargas</h2>
+                <p class="sub">Agenda por mês</p>
+              </div>
+            </div>
+            <div class="chart-wrap chart-wrap--area">
+              <canvas id="chartRecargas"></canvas>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2>Conformidade por Dept.</h2>
+                <p class="sub">Meta 100% válido</p>
+              </div>
+            </div>
+            <ul class="goal-list" id="goalList"></ul>
+          </article>
+        </section>
+
+        <section class="insight">
+          <div class="insight-text">
+            <h3>Resumo operacional</h3>
+            <p id="insightText">Carregando...</p>
+          </div>
+          <div class="insight-actions">
+            <span id="insightStamp"></span>
+            <button type="button" class="btn-primary" data-page="relatorios">Ver relatório detalhado</button>
+          </div>
+        </section>
+      </section>
+
+      <!-- EXTINTORES -->
+      <section id="page-extintores" class="page">
+        <div class="page-head">
+          <h2>Inventário de Extintores</h2>
+          <div class="filters-inline">
+            <select id="filterStatus">
+              <option value="">Todos os status</option>
+              <option value="Válido">Válidos</option>
+              <option value="Vencido">Para recarga</option>
+            </select>
+            <select id="filterCarga">
+              <option value="">Todas as cargas</option>
+            </select>
+            <select id="filterTipo">
+              <option value="">Todos os tipos</option>
+            </select>
+          </div>
+        </div>
+        <article class="card table-card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nº</th>
+                  <th>Local</th>
+                  <th>Dept.</th>
+                  <th>Tipo</th>
+                  <th>Carga</th>
+                  <th>Última recarga</th>
+                  <th>Validade recarga</th>
+                  <th>Próx. recarga</th>
+                  <th>Último TH</th>
+                  <th>Status TH</th>
+                  <th>Próx. TH</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- RECARGAS POR TIPO -->
+      <section id="page-recargas" class="page">
+        <div class="page-head">
+          <h2>Controle de recarga por tipo</h2>
+          <select id="filterTipoRecarga" class="select-mini">
+            <option value="">Todos os tipos</option>
+          </select>
+        </div>
+        <section class="kpi-row kpi-row--3">
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Tipos em uso</span></div>
+            <strong id="recKpiTipos">0</strong>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Recargas válidas</span></div>
+            <strong id="recKpiValidas">0</strong>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Custo previsto no ano</span></div>
+            <strong id="recKpiCusto">R$ 0</strong>
+          </article>
+        </section>
+        <div class="local-cards" id="tipoCards"></div>
+        <section class="mid-grid">
+          <article class="card">
+            <div class="card-head"><h2>Quantidade por tipo</h2></div>
+            <div class="chart-wrap chart-wrap--bar"><canvas id="chartTipos"></canvas></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h2>Custo de recarga por tipo</h2></div>
+            <div class="chart-wrap chart-wrap--bar"><canvas id="chartTipoCusto"></canvas></div>
+          </article>
+        </section>
+        <article class="card table-card">
+          <div class="card-head">
+            <div>
+              <h2>Recargas do inventário</h2>
+              <p class="sub">Status e valor unitário conforme o tipo</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nº</th>
+                  <th>Tipo</th>
+                  <th>Carga</th>
+                  <th>Local</th>
+                  <th>Dept.</th>
+                  <th>Última recarga</th>
+                  <th>Validade</th>
+                  <th>Próxima</th>
+                  <th>Custo (R$)</th>
+                </tr>
+              </thead>
+              <tbody id="recargaTableBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- TESTE HIDROSTATICO -->
+      <section id="page-th" class="page">
+        <div class="page-head">
+          <h2>Controle de teste hidrostático</h2>
+          <p class="sub" style="margin-left:auto">Validade = último ensaio + 5 anos</p>
+          <select id="filterThStatus" class="select-mini">
+            <option value="">Todos os status</option>
+            <option value="Válido">Válidos</option>
+            <option value="Vencido">Vencidos</option>
+          </select>
+        </div>
+        <section class="kpi-row">
+          <article class="kpi-card">
+            <div class="kpi-top"><span>TH válidos</span><div class="kpi-icon green"><i class="fa-solid fa-circle-check"></i></div></div>
+            <strong id="thKpiValidos">0</strong>
+            <div class="kpi-trend up" id="thKpiValidosTrend">Conformidade TH</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>TH vencidos</span><div class="kpi-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div></div>
+            <strong id="thKpiVencidos">0</strong>
+            <div class="kpi-trend down" id="thKpiVencidosTrend">Requer teste</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Vencem em 12 meses</span><div class="kpi-icon orange"><i class="fa-solid fa-calendar"></i></div></div>
+            <strong id="thKpi12">0</strong>
+            <div class="kpi-trend up">Programar ensaio</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Custo TH no ano</span><div class="kpi-icon orange"><i class="fa-solid fa-coins"></i></div></div>
+            <strong id="thKpiCusto">R$ 0</strong>
+            <div class="kpi-trend up" id="thKpiCustoDetalhe">Por tipo</div>
+          </article>
+        </section>
+        <section class="mid-grid">
+          <article class="card">
+            <div class="card-head"><h2>Agenda de testes</h2><p class="sub">Próximos ensaios hidrostáticos</p></div>
+            <div class="chart-wrap chart-wrap--bar"><canvas id="chartThAgenda"></canvas></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h2>TH por tipo de extintor</h2></div>
+            <div class="chart-wrap chart-wrap--bar"><canvas id="chartThTipo"></canvas></div>
+          </article>
+        </section>
+        <article class="card table-card">
+          <div class="card-head">
+            <div>
+              <h2>Inventário de testes hidrostáticos</h2>
+              <p class="sub">Último ensaio, validade e custo por tipo</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nº</th>
+                  <th>Tipo</th>
+                  <th>Carga</th>
+                  <th>Local</th>
+                  <th>Dept.</th>
+                  <th>Último TH</th>
+                  <th>Status</th>
+                  <th>Próximo TH</th>
+                  <th>Custo (R$)</th>
+                </tr>
+              </thead>
+              <tbody id="thTableBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- LOCAIS -->
+      <section id="page-locais" class="page">
+        <div class="page-head"><h2>Locais</h2></div>
+        <div class="local-cards" id="localCards"></div>
+      </section>
+
+      <!-- VENCIMENTOS -->
+      <section id="page-vencimentos" class="page">
+        <div class="page-head"><h2>Vencimentos</h2></div>
+        <section class="kpi-row kpi-row--3">
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Para recarga agora</span></div>
+            <strong id="vencNow">0</strong>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>TH vencido</span></div>
+            <strong id="thVencidos">0</strong>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Recargas em 90 dias</span></div>
+            <strong id="prox90">0</strong>
+          </article>
+        </section>
+        <article class="card table-card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nº</th>
+                  <th>Local</th>
+                  <th>Dept.</th>
+                  <th>Carga</th>
+                  <th>Validade Recarga</th>
+                  <th>Próx. Recarga</th>
+                  <th>Status TH</th>
+                </tr>
+              </thead>
+              <tbody id="vencTableBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- DEPARTAMENTOS -->
+      <section id="page-departamentos" class="page">
+        <div class="page-head"><h2>Departamentos</h2></div>
+        <div class="local-cards" id="dptoCards"></div>
+        <article class="card">
+          <div class="card-head"><h2>Comparativo por Departamento</h2></div>
+          <div class="chart-wrap chart-wrap--bar"><canvas id="chartDpto"></canvas></div>
+        </article>
+      </section>
+
+      <!-- PRECOS / VALORES DE RECARGA -->
+      <section id="page-precos" class="page">
+        <div class="page-head">
+          <h2>Valores de recarga</h2>
+          <button type="button" class="btn-primary js-save-precos" style="width:auto">Salvar valores</button>
+        </div>
+        <article class="card howto-card">
+          <h3>Atualize sempre que o fornecedor mudar o preço</h3>
+          <p>Informe o valor de <strong>recarga</strong> por tipo e carga (kg) e o valor do <strong>teste hidrostático</strong> por tipo. Os custos do orçamento e dos relatórios são recalculados na hora.</p>
+        </article>
+        <p class="import-msg" id="precoMsg" hidden></p>
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <h2>Tabela de preços</h2>
+              <p class="sub">Edite, inclua uma nova carga ou altere o TH</p>
+            </div>
+          </div>
+          <div id="pricePageWrap"></div>
+          <div class="add-price-row">
+            <select id="newPrecoTipo"></select>
+            <input id="newPrecoCarga" type="number" min="1" step="1" placeholder="Carga kg" />
+            <input id="newPrecoValor" type="number" min="0" step="0.01" placeholder="Valor recarga R$" />
+            <button type="button" class="btn-primary" id="btnAddPreco" style="width:auto">Adicionar recarga</button>
+          </div>
+          <div class="budget-meta">
+            <label>Orçamento anual (R$)
+              <input id="orcamentoAnualPage" type="number" min="0" step="0.01" />
+            </label>
+          </div>
+        </article>
+      </section>
+
+      <!-- ORCAMENTO -->
+      <section id="page-orcamento" class="page">
+        <div class="page-head">
+          <h2>Controle orçamentário</h2>
+          <div class="filters-inline">
+            <select id="orcYear"></select>
+            <button type="button" class="btn-ghost" id="btnExportOrc">Exportar custos (CSV)</button>
+          </div>
+        </div>
+
+        <section class="kpi-row">
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Urgente (vencidos)</span><div class="kpi-icon red"><i class="fa-solid fa-bolt"></i></div></div>
+            <strong id="orcUrgente">R$ 0</strong>
+            <div class="kpi-trend down" id="orcUrgenteQtd">0 recargas</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Custo no mês</span><div class="kpi-icon orange"><i class="fa-solid fa-calendar-day"></i></div></div>
+            <strong id="orcMes">R$ 0</strong>
+            <div class="kpi-trend up" id="orcMesLabel">—</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Previsão anual</span><div class="kpi-icon orange"><i class="fa-solid fa-chart-line"></i></div></div>
+            <strong id="orcAno">R$ 0</strong>
+            <div class="kpi-trend up" id="orcAnoDetalhe">Recargas + TH</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Saldo do orçamento</span><div class="kpi-icon green"><i class="fa-solid fa-scale-balanced"></i></div></div>
+            <strong id="orcSaldo">R$ 0</strong>
+            <div class="kpi-trend up" id="orcSaldoTrend">Meta anual</div>
+          </article>
+        </section>
+
+        <section class="mid-grid">
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2>Custo mensal previsto</h2>
+                <p class="sub">Recargas e testes hidrostáticos no ano</p>
+              </div>
+            </div>
+            <div class="chart-wrap chart-wrap--bar"><canvas id="chartOrcMes"></canvas></div>
+          </article>
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2>Custo por departamento</h2>
+                <p class="sub">Visão gerencial</p>
+              </div>
+            </div>
+            <div class="chart-wrap chart-wrap--bar"><canvas id="chartOrcDpto"></canvas></div>
+          </article>
+        </section>
+
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <h2>Preços por tipo (recarga e TH)</h2>
+              <p class="sub">Defina o valor de recarga por tipo/carga e o teste hidrostático de cada tipo.</p>
+            </div>
+            <button type="button" class="btn-primary js-save-precos" style="width:auto">Salvar preços</button>
+          </div>
+          <div id="priceTipoWrap"></div>
+          <div class="budget-meta">
+            <label>Orçamento anual (R$)
+              <input id="orcamentoAnual" type="number" min="0" step="0.01" />
+            </label>
+          </div>
+        </article>
+
+        <article class="card table-card">
+          <div class="card-head">
+            <div>
+              <h2>Custo de cada recarga</h2>
+              <p class="sub">Valor unitário por extintor no ano selecionado</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nº</th>
+                  <th>Local</th>
+                  <th>Dept.</th>
+                  <th>Carga</th>
+                  <th>Recarga (R$)</th>
+                  <th>TH (R$)</th>
+                  <th>Total (R$)</th>
+                  <th>Quando</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="orcTableBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- DADOS -->
+      <section id="page-dados" class="page">
+        <div class="page-head">
+          <h2>Alimentar dados</h2>
+        </div>
+
+        <article class="card howto-card">
+          <h3>Como atualizar todo mês</h3>
+          <ol>
+            <li>Clique em <strong>Baixar planilha</strong> (abre no Excel).</li>
+            <li>Altere datas, status (Válido/Vencido), locais ou inclua novos extintores.</li>
+            <li>Salve o arquivo em CSV e clique em <strong>Importar planilha</strong>.</li>
+            <li>Ou edite direto na tabela abaixo e clique em <strong>Salvar alterações</strong>.</li>
+          </ol>
+          <p class="sub">Os dados ficam gravados neste computador (navegador). Exporte um CSV de backup após cada atualização.</p>
+        </article>
+
+        <div class="action-row">
+          <button type="button" class="btn-primary" id="btnDownloadTpl" style="width:auto">
+            <i class="fa-solid fa-download"></i> Baixar planilha
+          </button>
+          <label class="btn-ghost file-btn">
+            <i class="fa-solid fa-upload"></i> Importar planilha
+            <input id="fileImport" type="file" accept=".csv,text/csv" hidden />
+          </label>
+          <button type="button" class="btn-primary" id="btnSaveDados" style="width:auto">
+            <i class="fa-solid fa-floppy-disk"></i> Salvar alterações
+          </button>
+          <button type="button" class="btn-ghost" id="btnAddRow">
+            <i class="fa-solid fa-plus"></i> Novo extintor
+          </button>
+          <button type="button" class="btn-ghost" id="btnResetDados">Restaurar PDF original</button>
+        </div>
+        <p class="import-msg" id="importMsg" hidden></p>
+
+        <article class="card table-card">
+          <div class="card-head">
+            <div>
+              <h2>Planilha do inventário</h2>
+              <p class="sub" id="dadosCount">0 registros</p>
+            </div>
+          </div>
+          <div class="table-wrap table-wrap--edit">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nº</th>
+                  <th>Local</th>
+                  <th>Dept.</th>
+                  <th>Tipo</th>
+                  <th>Carga</th>
+                  <th>Data recarga</th>
+                  <th>Validade</th>
+                  <th>Próx. recarga</th>
+                  <th>Último TH</th>
+                  <th>Status TH</th>
+                  <th>Próx. TH</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="editTableBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- RELATORIOS -->
+      <section id="page-relatorios" class="page">
+        <div class="page-head"><h2>Relatórios</h2></div>
+        <article class="card report-card">
+          <h3>Relatório de conformidade</h3>
+          <p id="reportSummary"></p>
+          <ul id="reportBullets" class="report-bullets"></ul>
+          <button type="button" class="btn-primary" id="btnExport">Exportar resumo (CSV)</button>
+        </article>
+      </section>
+
+      <!-- CONFIG -->
+      <section id="page-configuracoes" class="page">
+        <div class="page-head"><h2>Configurações</h2></div>
+        <article class="card config-card">
+          <div class="config-row"><span>Fonte de dados</span><strong id="cfgFonte">PDF + planilha mensal</strong></div>
+          <div class="config-row"><span>Registros</span><strong id="cfgTotal">69</strong></div>
+          <div class="config-row"><span>Última atualização</span><strong id="cfgUpdated">—</strong></div>
+          <div class="config-row"><span>Critério</span><strong>Validade da recarga + teste hidrostático</strong></div>
+          <div class="config-row"><span>Responsável</span><strong>Franklin Silva · SESMT</strong></div>
+        </article>
+      </section>
+    </main>
+  </div>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
