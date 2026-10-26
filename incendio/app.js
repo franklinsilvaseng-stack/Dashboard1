@@ -10,6 +10,8 @@ const STORAGE = {
   dados: "fireboard_extintores_v4",
   precos: "fireboard_precos_v4",
   updated: "fireboard_updated_v4",
+  updateAlerts: "fireboard_update_alerts_v1",
+  theme: "fireboard_theme_v1",
 };
 
 const NUMS_PARA_RECARGA = [2, 6, 16, 17, 18, 26, 31, 38, 41, 44, 53, 57, 58, 60, 62];
@@ -118,33 +120,299 @@ function destroyChart(key) {
   }
 }
 
-function persist() {
+function endOfMonth(date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+}
+
+function daysUntil(date) {
+  const a = startOfDay(new Date());
+  const b = startOfDay(date);
+  return Math.round((b - a) / (1000 * 60 * 60 * 24));
+}
+
+function loadUpdateAlerts() {
+  try {
+    const raw = localStorage.getItem(STORAGE.updateAlerts);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.slice(0, 20) : [];
+  } catch {
+    return [];
+  }
+}
+
+function pushUpdateAlert(message) {
+  const list = loadUpdateAlerts();
+  list.unshift({
+    id: `${Date.now()}`,
+    at: new Date().toISOString(),
+    message: message || "Inventário de extintores atualizado.",
+  });
+  localStorage.setItem(STORAGE.updateAlerts, JSON.stringify(list.slice(0, 20)));
+}
+
+function showToast(title, text) {
+  const host = document.getElementById("toastHost");
+  if (!host) return;
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.innerHTML = `<strong>${title}</strong><p>${text}</p>`;
+  host.appendChild(el);
+  setTimeout(() => el.remove(), 4500);
+}
+
+/** Dois alertas: 60 dias e 30 dias antes da recarga (com prazo até o fim daquele mês). */
+function buildVencimentoAlerts() {
+  const alert60 = [];
+  const alert30 = [];
+  const overdue = [];
+
+  EXTINTORES.forEach((e) => {
+    const due = parseDate(e.proximaRecarga);
+    if (!due) return;
+    const monthEnd = endOfMonth(due);
+    const daysToDue = daysUntil(due);
+    const daysToMonthEnd = daysUntil(monthEnd);
+    const item = {
+      num: e.num,
+      local: e.local,
+      dpto: e.dpto,
+      proximaRecarga: e.proximaRecarga,
+      monthEnd: formatDateInput(monthEnd),
+      days: daysToDue,
+      daysToMonthEnd,
+    };
+
+    if (e.validadeRecarga === "Vencido" || daysToDue < 0) {
+      overdue.push(item);
+      return;
+    }
+    // Alerta 30 dias até a data de recarga
+    if (daysToDue <= 30) alert30.push(item);
+    // Alerta 60 dias (ainda não entrou nos 30)
+    else if (daysToDue <= 60) alert60.push(item);
+  });
+
+  const byDays = (a, b) => a.days - b.days;
+  return {
+    alert60: alert60.sort(byDays),
+    alert30: alert30.sort(byDays),
+    overdue: overdue.sort(byDays),
+  };
+}
+
+function refreshAlertsUI() {
+  const { alert60, alert30, overdue } = buildVencimentoAlerts();
+  const updates = loadUpdateAlerts();
+  const badgeCount = alert60.length + alert30.length + overdue.length + (updates.length ? 1 : 0);
+  const badge = document.getElementById("alertBadge");
+  if (badge) {
+    badge.textContent = String(badgeCount);
+    badge.hidden = badgeCount === 0;
+  }
+
+  const body = document.getElementById("alertsBody");
+  if (!body) return;
+
+  const parts = [];
+
+  if (updates.length) {
+    const last = updates[0];
+    parts.push(`
+      <div class="alerts-group">
+        <h4>Atualização de extintores</h4>
+        <div class="alert-item alert-update">
+          <div class="alert-ico ok"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+          <div>
+            <strong>Inventário atualizado</strong>
+            <p>${last.message}<br>${formatDateBR(new Date(last.at))} · ${new Date(last.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>
+          </div>
+        </div>
+      </div>`);
+  }
+
+  if (alert30.length) {
+    parts.push(`
+      <div class="alerts-group">
+        <h4>Alerta 30 dias — recarga próxima</h4>
+        ${alert30
+          .slice(0, 12)
+          .map(
+            (e) => `
+          <div class="alert-item alert-30">
+            <div class="alert-ico danger"><i class="fa-solid fa-bell"></i></div>
+            <div>
+              <strong>Nº ${e.num} · ${e.local}</strong>
+              <p>${e.dpto} · recarga em ${e.proximaRecarga} · prazo até ${e.monthEnd} · faltam ${e.days} dia(s)</p>
+            </div>
+          </div>`
+          )
+          .join("")}
+        ${alert30.length > 12 ? `<p class="alerts-empty">+${alert30.length - 12} outros</p>` : ""}
+      </div>`);
+  }
+
+  if (alert60.length) {
+    parts.push(`
+      <div class="alerts-group">
+        <h4>Alerta 60 dias — recarga no horizonte</h4>
+        ${alert60
+          .slice(0, 12)
+          .map(
+            (e) => `
+          <div class="alert-item alert-60">
+            <div class="alert-ico warn"><i class="fa-regular fa-bell"></i></div>
+            <div>
+              <strong>Nº ${e.num} · ${e.local}</strong>
+              <p>${e.dpto} · recarga em ${e.proximaRecarga} · prazo até ${e.monthEnd} · faltam ${e.days} dia(s)</p>
+            </div>
+          </div>`
+          )
+          .join("")}
+        ${alert60.length > 12 ? `<p class="alerts-empty">+${alert60.length - 12} outros</p>` : ""}
+      </div>`);
+  }
+
+  if (overdue.length) {
+    parts.push(`
+      <div class="alerts-group">
+        <h4>Recargas vencidas</h4>
+        ${overdue
+          .slice(0, 10)
+          .map(
+            (e) => `
+          <div class="alert-item alert-30">
+            <div class="alert-ico danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div>
+              <strong>Nº ${e.num} · ${e.local}</strong>
+              <p>${e.dpto} · vencimento ${e.proximaRecarga}</p>
+            </div>
+          </div>`
+          )
+          .join("")}
+      </div>`);
+  }
+
+  body.innerHTML = parts.length
+    ? parts.join("")
+    : `<p class="alerts-empty">Nenhum alerta no momento.</p>`;
+}
+
+function setAlertsOpen(open) {
+  const panel = document.getElementById("alertsPanel");
+  const btn = document.getElementById("btnAlerts");
+  if (!panel || !btn) return;
+  panel.hidden = !open;
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) refreshAlertsUI();
+}
+
+function bindAlertsUI() {
+  const btn = document.getElementById("btnAlerts");
+  const close = document.getElementById("btnCloseAlerts");
+  if (btn) {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const panel = document.getElementById("alertsPanel");
+      setAlertsOpen(Boolean(panel?.hidden));
+    });
+  }
+  if (close) close.addEventListener("click", () => setAlertsOpen(false));
+  document.addEventListener("click", (e) => {
+    const wrap = document.querySelector(".alert-wrap");
+    if (!wrap || wrap.contains(e.target)) return;
+    setAlertsOpen(false);
+  });
+}
+
+function persist(options = {}) {
   localStorage.setItem(STORAGE.dados, JSON.stringify(EXTINTORES));
   localStorage.setItem(STORAGE.precos, JSON.stringify(PRECOS));
   localStorage.setItem(STORAGE.updated, new Date().toISOString());
+  const cloud = window.FireBoardCloud;
+  if (cloud?.isReady?.() && cloud.currentUser?.()) {
+    cloud
+      .saveShared({ extintores: EXTINTORES, precos: PRECOS })
+      .catch((err) => console.error("Falha ao salvar na nuvem:", err));
+  }
+  if (options.notifyUpdate) {
+    pushUpdateAlert(options.message || `Inventário salvo: ${EXTINTORES.length} extintores.`);
+    showToast("Atualização registrada", options.message || "Os extintores foram atualizados.");
+  }
+  refreshAlertsUI();
+}
+
+function mergePrecos(parsed) {
+  if (!parsed || typeof parsed !== "object") return structuredClone(DEFAULT_PRECOS);
+  return {
+    recarga: { ...DEFAULT_PRECOS.recarga, ...(parsed.recarga || {}) },
+    recargaPorTipo: {
+      ...DEFAULT_PRECOS.recargaPorTipo,
+      ...(parsed.recargaPorTipo || {}),
+    },
+    testeHidrostatico: Number(parsed.testeHidrostatico ?? DEFAULT_PRECOS.testeHidrostatico),
+    testeHidrostaticoPorTipo: {
+      ...DEFAULT_PRECOS.testeHidrostaticoPorTipo,
+      ...(parsed.testeHidrostaticoPorTipo || {}),
+    },
+    orcamentoAnual: Number(parsed.orcamentoAnual ?? DEFAULT_PRECOS.orcamentoAnual),
+  };
 }
 
 function loadPrecos() {
   try {
     const raw = localStorage.getItem(STORAGE.precos);
     if (!raw) return structuredClone(DEFAULT_PRECOS);
-    const parsed = JSON.parse(raw);
-    return {
-      recarga: { ...DEFAULT_PRECOS.recarga, ...(parsed.recarga || {}) },
-      recargaPorTipo: {
-        ...DEFAULT_PRECOS.recargaPorTipo,
-        ...(parsed.recargaPorTipo || {}),
-      },
-      testeHidrostatico: Number(parsed.testeHidrostatico ?? DEFAULT_PRECOS.testeHidrostatico),
-      testeHidrostaticoPorTipo: {
-        ...DEFAULT_PRECOS.testeHidrostaticoPorTipo,
-        ...(parsed.testeHidrostaticoPorTipo || {}),
-      },
-      orcamentoAnual: Number(parsed.orcamentoAnual ?? DEFAULT_PRECOS.orcamentoAnual),
-    };
+    return mergePrecos(JSON.parse(raw));
   } catch {
     return structuredClone(DEFAULT_PRECOS);
   }
+}
+
+function applyCloudPayload(data, { seedIfEmpty = false } = {}) {
+  if (data?.extintores?.length) {
+    EXTINTORES = data.extintores.map((e) =>
+      applyValidadeTH({ ...e, tipo: normalizeTipo(e.tipo) })
+    );
+    if (data.precos) PRECOS = mergePrecos(data.precos);
+    if (data.updatedAt) localStorage.setItem(STORAGE.updated, data.updatedAt);
+    localStorage.setItem(STORAGE.dados, JSON.stringify(EXTINTORES));
+    localStorage.setItem(STORAGE.precos, JSON.stringify(PRECOS));
+    return true;
+  }
+  if (seedIfEmpty) {
+    persist();
+  }
+  return false;
+}
+
+function refreshCurrentView() {
+  if (!currentPage) return;
+  navigate(currentPage);
+}
+
+
+function fixMojibakeText(value) {
+  if (value == null) return value;
+  let s = String(value);
+  const map = {
+    0x80: "À", 0x81: "Á", 0xa0: "à", 0xa1: "á", 0xa2: "â", 0xa3: "ã",
+    0xa7: "ç", 0xa9: "é", 0xaa: "ê", 0xad: "í", 0xb3: "ó", 0xb4: "ô",
+    0xb5: "õ", 0xba: "ú",
+  };
+  const re = new RegExp(String.fromCodePoint(0xc3, 0x192, 0xc2) + "([\u0080-\u00BF])", "g");
+  s = s.replace(re, (_, ch) => map[ch.codePointAt(0)] || ch);
+  s = s.split(String.fromCodePoint(0xc3, 0x201a, 0xc2, 0xb7)).join("·");
+  s = s.split(String.fromCodePoint(0xc3, 0x201a, 0xc2, 0xba)).join("º");
+  return s;
+}
+
+function sanitizeExtintor(e) {
+  if (!e || typeof e !== "object") return e;
+  const out = { ...e };
+  for (const k of ["local", "dpto", "tipo", "validadeRecarga", "statusTH", "dataRecarga", "proximaRecarga", "dataUltimoTH", "proximoTH"]) {
+    if (out[k] != null) out[k] = fixMojibakeText(out[k]);
+  }
+  return out;
 }
 
 function normalizeTipo(tipo) {
@@ -173,7 +441,7 @@ function custoTH(e) {
 }
 
 function applyValidadeTH(item) {
-  const e = { ...item };
+  const e = sanitizeExtintor(item);
   const last = parseDate(e.dataUltimoTH);
   if (thDateInvalida(e.dataUltimoTH)) {
     e.statusTH = "Vencido";
@@ -275,7 +543,7 @@ function updateKPIs(data) {
   const taxaEl = document.getElementById("kpiTaxaTrend");
   taxaEl.textContent = taxa >= 100 ? "Meta 100% atingida" : `${taxa}% · meta 100%`;
   taxaEl.className = `kpi-trend ${taxa >= 100 ? "up" : "down"}`;
-  document.getElementById("alertBadge").textContent = vencidos;
+  refreshAlertsUI();
   document.getElementById("donutCenterValue").textContent = total;
 
   sparkline("sparkTotal", [40, 48, 52, 58, 61, 65, total], COLORS.orange);
@@ -651,20 +919,314 @@ function buildCustos(year) {
     .filter((r) => r.urgenteRecarga || r.urgenteTH)
       .reduce((s, r) => s + (r.urgenteRecarga ? r.recargaValor : 0) + (r.urgenteTH ? custoTH(r.e) : 0), 0);
 
+  const sorted = rows.slice().sort((a, b) => Number(a.e.num) - Number(b.e.num));
+  const rowsNoAno = sorted.filter((r) => r.total > 0 || r.urgenteRecarga || r.urgenteTH);
+
   return {
-    rows: rows.filter((r) => r.total > 0 || r.urgenteRecarga || r.urgenteTH),
+    rows: sorted,
+    rowsNoAno,
     mensal,
     porDpto,
+    anual: rows.reduce((s, r) => s + r.total, 0),
+    mesAtual: mensal[monthNow] || 0,
     urgente,
     urgenteQtd: rows.filter((r) => r.urgenteRecarga).length,
-    anual: mensal.reduce((s, n) => s + n, 0),
-    mesAtual: mensal[monthNow],
   };
 }
 
 function selectedYear() {
   const el = document.getElementById("orcYear");
   return el && el.value ? Number(el.value) : new Date().getFullYear();
+}
+
+function nextProjectionYear() {
+  return new Date().getFullYear() + 1;
+}
+
+/** Empurra a data para cair no ano-alvo (ciclo anual ou de N anos). */
+function dateInTargetYear(date, year, stepYears = 1) {
+  if (!date) return null;
+  let d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  let guard = 0;
+  while (d.getFullYear() < year && guard < 20) {
+    d = new Date(d.getFullYear() + stepYears, d.getMonth(), d.getDate());
+    guard += 1;
+  }
+  return d.getFullYear() === year ? d : null;
+}
+
+function buildProjecao(year) {
+  const mensal = Array(12).fill(0);
+  const qtdMes = Array(12).fill(0);
+  const porDpto = {};
+  const porTipo = {};
+  const rows = [];
+
+  EXTINTORES.forEach((e) => {
+    const item = applyValidadeTH({ ...e, tipo: normalizeTipo(e.tipo) });
+    let baseRecarga = parseDate(item.proximaRecarga);
+    if (!baseRecarga || item.validadeRecarga === "Vencido") {
+      baseRecarga = new Date();
+    }
+    const recargaDate = dateInTargetYear(baseRecarga, year, 1);
+    const thBase = parseDate(item.proximoTH);
+    const thDate = thBase ? dateInTargetYear(thBase, year, 5) : null;
+
+    const recargaValor = recargaDate ? custoRecarga(item) : 0;
+    const thValor = thDate ? custoTH(item) : 0;
+    if (!recargaDate && !thDate) return;
+
+    if (recargaDate) {
+      mensal[recargaDate.getMonth()] += recargaValor;
+      qtdMes[recargaDate.getMonth()] += 1;
+      const tipo = normalizeTipo(item.tipo);
+      porTipo[tipo] = (porTipo[tipo] || 0) + 1;
+    }
+    if (thDate) mensal[thDate.getMonth()] += thValor;
+
+    const total = recargaValor + thValor;
+    const dpto = item.dpto || "—";
+    porDpto[dpto] = (porDpto[dpto] || 0) + total;
+
+    rows.push({
+      e: item,
+      recargaDate,
+      thDate,
+      recargaValor,
+      thValor,
+      total,
+    });
+  });
+
+  rows.sort((a, b) => Number(a.e.num) - Number(b.e.num));
+  const picoIdx = mensal.reduce((best, val, idx, arr) => (val > arr[best] ? idx : best), 0);
+  const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+  return {
+    year,
+    rows,
+    mensal,
+    qtdMes,
+    porDpto,
+    porTipo,
+    recargasQtd: rows.filter((r) => r.recargaDate).length,
+    thQtd: rows.filter((r) => r.thDate).length,
+    anual: rows.reduce((s, r) => s + r.total, 0),
+    picoMes: mensal[picoIdx] > 0 ? meses[picoIdx] : "—",
+    picoValor: mensal[picoIdx] || 0,
+  };
+}
+
+function renderProjecao() {
+  const year = nextProjectionYear();
+  const proj = buildProjecao(year);
+  const title = document.getElementById("projTitle");
+  const sub = document.getElementById("projSub");
+  if (title) title.textContent = `Projeção ${year}`;
+  if (sub) {
+    sub.textContent = `Planejamento de recargas e testes hidrostáticos para ${year}`;
+  }
+
+  document.getElementById("projKpiRecargas").textContent = proj.recargasQtd;
+  document.getElementById("projKpiRecargasTrend").textContent =
+    `${proj.recargasQtd} de ${EXTINTORES.length} extintores`;
+  document.getElementById("projKpiTh").textContent = proj.thQtd;
+  document.getElementById("projKpiThTrend").textContent = proj.thQtd
+    ? "Ensaios no ciclo de 5 anos"
+    : "Nenhum TH neste ano";
+  document.getElementById("projKpiCusto").textContent = money(proj.anual);
+  document.getElementById("projKpiCustoTrend").textContent = `Preços atuais · ${year}`;
+  document.getElementById("projKpiPico").textContent = proj.picoMes;
+  document.getElementById("projKpiPicoTrend").textContent =
+    proj.picoValor > 0 ? money(proj.picoValor) : "Sem pico";
+
+  document.getElementById("projInsight").textContent =
+    `Em ${year} estão previstas ${proj.recargasQtd} recargas e ${proj.thQtd} testes hidrostáticos, ` +
+    `com custo estimado de ${money(proj.anual)}. Mês de maior demanda: ${proj.picoMes}.`;
+  document.getElementById("projStamp").textContent =
+    `Projeção gerada · ${formatDateBR(new Date())}`;
+
+  document.getElementById("projTopList").innerHTML = proj.rows
+    .filter((r) => r.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 8)
+    .map(
+      (r) => `
+      <li class="tx-item">
+        <div class="tx-meta">
+          <strong>Nº ${r.e.num} · ${r.e.local}</strong>
+          <small>${r.e.dpto} · ${normalizeTipo(r.e.tipo)} ${r.e.cargaKg} kg</small>
+        </div>
+        <div class="tx-amount">
+          <strong>${money(r.total)}</strong>
+          <span>${r.recargaDate ? r.recargaDate.toLocaleDateString("pt-BR", { month: "short" }) : "TH"}</span>
+        </div>
+      </li>`
+    )
+    .join("") || '<li class="tx-item"><div class="tx-meta"><strong>Sem itens projetados</strong></div></li>';
+
+  const tipoEntries = Object.entries(proj.porTipo).sort((a, b) => b[1] - a[1]);
+  const tipoMax = Math.max(1, ...tipoEntries.map(([, n]) => n));
+  document.getElementById("projTipoList").innerHTML = tipoEntries.length
+    ? tipoEntries
+        .map(
+          ([tipo, n]) => `
+      <li class="goal-item">
+        <div class="goal-top">
+          <strong>${tipo}</strong>
+          <span>${n} recargas</span>
+        </div>
+        <div class="progress"><i style="width:${Math.round((n / tipoMax) * 100)}%"></i></div>
+      </li>`
+        )
+        .join("")
+    : '<li class="goal-item"><div class="goal-top"><strong>Sem recargas</strong></div></li>';
+
+  document.getElementById("projTableBody").innerHTML = proj.rows
+    .map(
+      (r) => `
+      <tr>
+        <td>${r.e.num}</td>
+        <td>${r.e.local}</td>
+        <td>${r.e.dpto}</td>
+        <td>${normalizeTipo(r.e.tipo)}</td>
+        <td>${r.e.cargaKg} kg</td>
+        <td>${r.recargaDate ? formatDateInput(r.recargaDate) : "—"}</td>
+        <td>${r.recargaDate ? money(r.recargaValor) : "—"}</td>
+        <td>${r.thDate ? formatDateInput(r.thDate) : "—"}</td>
+        <td>${r.thDate ? money(r.thValor) : "—"}</td>
+        <td><strong>${money(r.total)}</strong></td>
+      </tr>`
+    )
+    .join("");
+
+  const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  destroyChart("projMes");
+  destroyChart("projDpto");
+  destroyChart("projQtd");
+  if (typeof Chart === "undefined") return;
+
+  charts.projMes = new Chart(document.getElementById("chartProjMes"), {
+    type: "bar",
+    data: {
+      labels: meses,
+      datasets: [
+        {
+          label: "Custo (R$)",
+          data: proj.mensal,
+          backgroundColor: COLORS.orange,
+          borderRadius: 8,
+          maxBarThickness: 28,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => money(ctx.parsed.y) } },
+      },
+      scales: {
+        x: { ticks: { color: COLORS.muted }, grid: { display: false } },
+        y: {
+          beginAtZero: true,
+          ticks: { color: COLORS.muted, callback: (v) => `R$ ${v}` },
+          grid: { color: COLORS.grid },
+        },
+      },
+    },
+  });
+
+  const dptoLabels = Object.keys(proj.porDpto).sort();
+  charts.projDpto = new Chart(document.getElementById("chartProjDpto"), {
+    type: "bar",
+    data: {
+      labels: dptoLabels,
+      datasets: [
+        {
+          label: "Custo (R$)",
+          data: dptoLabels.map((d) => proj.porDpto[d]),
+          backgroundColor: COLORS.orange,
+          borderRadius: 8,
+          maxBarThickness: 42,
+        },
+      ],
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => money(ctx.parsed.x) } },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { color: COLORS.muted, callback: (v) => `R$ ${v}` },
+          grid: { color: COLORS.grid },
+        },
+        y: { ticks: { color: COLORS.muted }, grid: { display: false } },
+      },
+    },
+  });
+
+  charts.projQtd = new Chart(document.getElementById("chartProjQtd"), {
+    type: "bar",
+    data: {
+      labels: meses,
+      datasets: [
+        {
+          label: "Recargas",
+          data: proj.qtdMes,
+          backgroundColor: "rgba(255,122,0,0.55)",
+          borderRadius: 8,
+          maxBarThickness: 28,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: COLORS.muted }, grid: { display: false } },
+        y: {
+          beginAtZero: true,
+          ticks: { color: COLORS.muted, precision: 0 },
+          grid: { color: COLORS.grid },
+        },
+      },
+    },
+  });
+}
+
+function exportProjecaoCSV() {
+  const year = nextProjectionYear();
+  const proj = buildProjecao(year);
+  const header = "num;local;dpto;tipo;cargaKg;dataRecarga;custoRecarga;dataTH;custoTH;total";
+  const lines = proj.rows.map((r) =>
+    [
+      r.e.num,
+      r.e.local,
+      r.e.dpto,
+      normalizeTipo(r.e.tipo),
+      r.e.cargaKg,
+      r.recargaDate ? formatDateInput(r.recargaDate) : "",
+      r.recargaValor,
+      r.thDate ? formatDateInput(r.thDate) : "",
+      r.thValor,
+      r.total,
+    ]
+      .map(csvEscape)
+      .join(";")
+  );
+  downloadBlob(
+    "\uFEFF" + [header, ...lines].join("\n"),
+    `projecao-extintores-${year}.csv`,
+    "text/csv;charset=utf-8;"
+  );
 }
 
 function renderOrcamento() {
@@ -678,7 +1240,8 @@ function renderOrcamento() {
   document.getElementById("orcMes").textContent = money(custos.mesAtual);
   document.getElementById("orcMesLabel").textContent = mesNome;
   document.getElementById("orcAno").textContent = money(custos.anual);
-  document.getElementById("orcAnoDetalhe").textContent = `${custos.rows.length} itens no ano`;
+  document.getElementById("orcAnoDetalhe").textContent =
+    `${custos.rowsNoAno.length} com custo em ${year} · ${custos.rows.length} no inventário`;
   document.getElementById("orcSaldo").textContent = money(saldo);
   const saldoEl = document.getElementById("orcSaldoTrend");
   saldoEl.textContent = saldo >= 0 ? "Dentro do orçamento" : "Estouro orçamentário";
@@ -689,19 +1252,28 @@ function renderOrcamento() {
   if (orcAnual) orcAnual.value = PRECOS.orcamentoAnual;
 
   document.getElementById("orcTableBody").innerHTML = custos.rows
-    .sort((a, b) => a.e.num - b.e.num)
-    .map((r) => `
+    .map((r) => {
+      const foraDoAno = !r.recargaNoAno && !r.thNoAno && !r.urgenteRecarga && !r.urgenteTH;
+      const statusLabel = r.urgenteRecarga
+        ? "Vencido"
+        : foraDoAno
+          ? "Fora do ano"
+          : "Programado";
+      const statusClass = r.urgenteRecarga ? "vencido" : foraDoAno ? "neutro" : "valido";
+      return `
       <tr>
         <td>${r.e.num}</td>
         <td>${r.e.local}</td>
         <td>${r.e.dpto}</td>
         <td>${r.e.cargaKg} kg</td>
-        <td>${r.recargaNoAno ? money(r.recargaValor) : "—"}</td>
-        <td>${r.thNoAno ? money(r.thValor) : "—"}</td>
+        <td>${r.recargaNoAno || r.urgenteRecarga ? money(r.recargaValor) : "—"}</td>
+        <td>${r.thNoAno || r.urgenteTH ? money(r.thValor || custoTH(r.e)) : "—"}</td>
         <td><strong>${money(r.total)}</strong></td>
         <td>${r.quando}</td>
-        <td><span class="status-pill ${r.urgenteRecarga ? "vencido" : "valido"}">${r.urgenteRecarga ? "Vencido" : "Programado"}</span></td>
-      </tr>`).join("");
+        <td><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+      </tr>`;
+    })
+    .join("");
 
   const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   destroyChart("orcMes");
@@ -1000,7 +1572,10 @@ function collectEditTable() {
 
 function saveDadosFromTable() {
   EXTINTORES = collectEditTable();
-  persist();
+  persist({
+    notifyUpdate: true,
+    message: `Inventário salvo: ${EXTINTORES.length} extintores.`,
+  });
   populateFilters();
   showImportMsg(`Inventário salvo: ${EXTINTORES.length} extintores.`, true);
   renderDadosPage();
@@ -1322,6 +1897,41 @@ function populateFilters() {
   }
 }
 
+
+function getTheme() {
+  return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+}
+
+function syncChartTheme() {
+  const light = getTheme() === "light";
+  COLORS.muted = light ? "#71717a" : "#8b8b93";
+  COLORS.grid = light ? "rgba(24,24,27,0.08)" : "rgba(255,255,255,0.06)";
+  if (typeof Chart !== "undefined") Chart.defaults.color = COLORS.muted;
+}
+
+function updateThemeToggleUI() {
+  const btn = document.getElementById("btnTheme");
+  const icon = document.getElementById("themeIcon");
+  if (!btn || !icon) return;
+  const light = getTheme() === "light";
+  icon.className = light ? "fa-solid fa-moon" : "fa-solid fa-sun";
+  btn.title = light ? "Modo escuro" : "Modo claro";
+  btn.setAttribute("aria-label", light ? "Ativar modo escuro" : "Ativar modo claro");
+}
+
+function applyTheme(theme, { refresh = true } = {}) {
+  const next = theme === "light" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem(STORAGE.theme, next);
+  syncChartTheme();
+  updateThemeToggleUI();
+  if (refresh) navigate(currentPage);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem(STORAGE.theme);
+  applyTheme(saved === "light" ? "light" : "dark", { refresh: false });
+}
 function navigate(page) {
   currentPage = page;
   document.querySelectorAll(".page").forEach((el) => el.classList.remove("active"));
@@ -1333,6 +1943,7 @@ function navigate(page) {
   window.location.hash = page;
 
   if (page === "dashboard") refreshDashboard();
+  if (page === "projecao") renderProjecao();
   if (page === "extintores") renderTable();
   if (page === "locais") renderLocaisPage();
   if (page === "vencimentos") renderVencimentosPage();
@@ -1349,15 +1960,107 @@ function navigate(page) {
     document.getElementById("cfgUpdated").textContent = upd
       ? formatDateBR(new Date(upd))
       : "Dados do PDF original";
-    document.getElementById("cfgFonte").textContent = localStorage.getItem(STORAGE.dados)
-      ? "Planilha salva neste navegador"
-      : "Controle de extintores.pdf";
+    const cloud = window.FireBoardCloud;
+    const cfgCloud = document.getElementById("cfgCloud");
+    if (cfgCloud) {
+      if (!cloud?.isConfigured?.()) cfgCloud.textContent = "Não configurado";
+      else if (cloud.currentUser?.()) cfgCloud.textContent = `Online · ${cloud.currentUser().email}`;
+      else cfgCloud.textContent = "Configurado · desconectado";
+    }
+    document.getElementById("cfgFonte").textContent =
+      cloud?.isReady?.() && cloud.currentUser?.()
+        ? "Firebase (compartilhado)"
+        : localStorage.getItem(STORAGE.dados)
+          ? "Planilha salva neste navegador"
+          : "Controle de extintores.pdf";
   }
 }
 
 function exportCSV() {
   downloadBlob(toCSV(EXTINTORES), "controle-extintores.csv", "text/csv;charset=utf-8;");
 }
+
+const PRINT_TITLES = {
+  dashboard: "Dashboard operacional",
+  projecao: "Projeção do próximo ano",
+  extintores: "Inventário de extintores",
+  locais: "Extintores por local",
+  vencimentos: "Vencimentos e prioridades",
+  departamentos: "Conformidade por departamento",
+  recargas: "Recargas por tipo",
+  th: "Teste hidrostático",
+  precos: "Valores de recarga",
+  orcamento: "Orçamento",
+  dados: "Alimentar dados",
+  relatorios: "Relatórios",
+  configuracoes: "Configurações",
+};
+
+
+function clearPrintFit() {
+  const page = document.querySelector(".page.active");
+  if (!page) return;
+  page.style.transform = "";
+  page.style.width = "";
+  page.style.maxHeight = "";
+}
+
+function fitPrintToOnePage() {
+  clearPrintFit();
+  const page = document.querySelector(".page.active");
+  if (!page) return;
+  // Area util A4 paisagem (~277x190 mm) em px a 96dpi
+  const maxW = 1040;
+  const maxH = 690;
+  const rect = page.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const scale = Math.min(1, maxW / rect.width, maxH / rect.height);
+  if (scale < 0.995) {
+    page.style.transformOrigin = "top left";
+    page.style.transform = `scale(${scale})`;
+    page.style.width = `${(100 / scale).toFixed(2)}%`;
+  }
+}
+
+function printGestaoAVista() {
+  const titleEl = document.getElementById("printPageTitle");
+  const dateEl = document.getElementById("printDateStamp");
+  if (titleEl) titleEl.textContent = PRINT_TITLES[currentPage] || "Painel FireBoard";
+  if (dateEl) {
+    dateEl.textContent = new Date().toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  document.body.classList.add("is-printing");
+  navigate(currentPage);
+  requestAnimationFrame(() => {
+    setTimeout(() => window.print(), 180);
+  });
+}
+
+window.addEventListener("beforeprint", () => {
+  const titleEl = document.getElementById("printPageTitle");
+  const dateEl = document.getElementById("printDateStamp");
+  if (titleEl) titleEl.textContent = PRINT_TITLES[currentPage] || "Painel FireBoard";
+  if (dateEl) {
+    dateEl.textContent = new Date().toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  document.body.classList.add("is-printing");
+});
+
+window.addEventListener("afterprint", () => {
+  document.body.classList.remove("is-printing");
+});
 
 function exportOrcamentoCSV() {
   const year = selectedYear();
@@ -1407,6 +2110,10 @@ function bindNav() {
 function bindEvents() {
   bindNav();
 
+  document.getElementById("btnTheme")?.addEventListener("click", () => {
+    applyTheme(getTheme() === "light" ? "dark" : "light");
+  });
+
   document.getElementById("sideSearch").addEventListener("input", (e) => {
     searchTerm = e.target.value.trim();
     if (currentPage === "dashboard") refreshDashboard();
@@ -1446,6 +2153,10 @@ function bindEvents() {
   document.getElementById("btnRelatorio").addEventListener("click", () => navigate("relatorios"));
   document.getElementById("btnExport").addEventListener("click", exportCSV);
   document.getElementById("btnExportOrc").addEventListener("click", exportOrcamentoCSV);
+  document.getElementById("btnExportProj")?.addEventListener("click", exportProjecaoCSV);
+  document.getElementById("btnPrintProj")?.addEventListener("click", printGestaoAVista);
+  document.getElementById("btnPrint")?.addEventListener("click", printGestaoAVista);
+  bindAlertsUI();
   document.getElementById("orcYear").addEventListener("change", renderOrcamento);
   document.querySelectorAll(".js-save-precos").forEach((btn) => {
     btn.addEventListener("click", savePrecosFromForm);
@@ -1458,7 +2169,10 @@ function bindEvents() {
   document.getElementById("btnResetDados").addEventListener("click", () => {
     if (!confirm("Restaurar os 69 registros do PDF original? Alterações não salvas em CSV serão perdidas.")) return;
     EXTINTORES = structuredClone(BASE_DATA);
-    persist();
+    persist({
+      notifyUpdate: true,
+      message: "Dados restaurados a partir do PDF original.",
+    });
     populateFilters();
     renderDadosPage();
     showImportMsg("Dados restaurados a partir do PDF original.", true);
@@ -1476,7 +2190,10 @@ function bindEvents() {
           return;
         }
         EXTINTORES = rows;
-        persist();
+        persist({
+          notifyUpdate: true,
+          message: `Importados ${rows.length} extintores de ${file.name}.`,
+        });
         populateFilters();
         renderDadosPage();
         showImportMsg(`Importados ${rows.length} extintores de ${file.name}. Clique em Salvar se for editar depois.`, true);
@@ -1500,6 +2217,15 @@ function bindEvents() {
 }
 
 async function loadData() {
+  const cloud = window.FireBoardCloud;
+  if (cloud?.isReady?.() && cloud.currentUser?.()) {
+    try {
+      const remote = await cloud.loadShared();
+      if (remote?.extintores?.length) return remote.extintores;
+    } catch (err) {
+      console.warn("Falha ao ler nuvem, usando dados locais:", err);
+    }
+  }
   const saved = localStorage.getItem(STORAGE.dados);
   if (saved) {
     try {
@@ -1517,30 +2243,70 @@ async function loadData() {
   return res.json();
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+function waitForCloud() {
+  if (window.FireBoardCloud) return Promise.resolve(window.FireBoardCloud);
+  return new Promise((resolve) => {
+    window.addEventListener("fireboard-cloud-ready", () => resolve(window.FireBoardCloud), {
+      once: true,
+    });
+  });
+}
+
+async function bootstrapApp() {
+  initTheme();
   if (typeof Chart !== "undefined") {
     Chart.defaults.font.family = '"Segoe UI", sans-serif';
     Chart.defaults.color = COLORS.muted;
   }
 
   bindNav();
-  document.getElementById("greetingTitle").textContent = `${greeting()}, Franklin`;
   document.getElementById("todayDate").textContent = formatDateBR(new Date());
   populateYearSelect();
 
   try {
-    const loaded = await loadData();
-    const original = typeof window.EXTINTORES_DATA !== "undefined" ? window.EXTINTORES_DATA : loaded;
-    const fromStorage = Boolean(localStorage.getItem(STORAGE.dados));
-    BASE_DATA = normalizeConformidade(structuredClone(original));
-    EXTINTORES = fromStorage
-      ? structuredClone(loaded).map((e) => applyValidadeTH({ ...e, tipo: normalizeTipo(e.tipo) }))
-      : normalizeConformidade(structuredClone(loaded));
-    PRECOS = loadPrecos();
-    if (!fromStorage) persist();
+    const cloud = window.FireBoardCloud;
+    let fromCloud = false;
+    if (cloud?.isReady?.() && cloud.currentUser?.()) {
+      try {
+        const remote = await cloud.loadShared();
+        if (remote?.extintores?.length) {
+          const original =
+            typeof window.EXTINTORES_DATA !== "undefined"
+              ? window.EXTINTORES_DATA
+              : remote.extintores;
+          BASE_DATA = normalizeConformidade(structuredClone(original));
+          EXTINTORES = remote.extintores.map((e) =>
+            applyValidadeTH({ ...e, tipo: normalizeTipo(e.tipo) })
+          );
+          PRECOS = remote.precos ? mergePrecos(remote.precos) : loadPrecos();
+          if (remote.updatedAt) localStorage.setItem(STORAGE.updated, remote.updatedAt);
+          localStorage.setItem(STORAGE.dados, JSON.stringify(EXTINTORES));
+          localStorage.setItem(STORAGE.precos, JSON.stringify(PRECOS));
+          fromCloud = true;
+        }
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+
+    if (!fromCloud) {
+      const loaded = await loadData();
+      const original = typeof window.EXTINTORES_DATA !== "undefined" ? window.EXTINTORES_DATA : loaded;
+      const fromStorage = Boolean(localStorage.getItem(STORAGE.dados));
+      BASE_DATA = normalizeConformidade(structuredClone(original));
+      EXTINTORES = fromStorage
+        ? structuredClone(loaded).map((e) => applyValidadeTH({ ...e, tipo: normalizeTipo(e.tipo) }))
+        : normalizeConformidade(structuredClone(loaded));
+      PRECOS = loadPrecos();
+      if (cloud?.isReady?.() && cloud.currentUser?.()) {
+        await cloud.saveShared({ extintores: EXTINTORES, precos: PRECOS });
+      } else if (!fromStorage) {
+        persist();
+      }
+    }
   } catch (err) {
     document.getElementById("insightText").textContent =
-      "Não foi possível carregar os dados. Abra via http://localhost:5173.";
+      "Não foi possível carregar os dados. Abra via servidor local (Live Server).";
     console.error(err);
     return;
   }
@@ -1548,9 +2314,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   populateFilters();
   bindEvents();
 
+  const cloud = window.FireBoardCloud;
+  if (cloud?.isReady?.() && cloud.currentUser?.()) {
+    cloud.subscribe((data) => {
+      if (!data?.extintores?.length) return;
+      const same =
+        JSON.stringify(data.extintores) === JSON.stringify(EXTINTORES) &&
+        JSON.stringify(data.precos || {}) === JSON.stringify(PRECOS);
+      if (same) return;
+      applyCloudPayload(data);
+      populateFilters();
+      refreshCurrentView();
+    });
+  }
+
   const hash = window.location.hash.replace("#", "");
   const valid = [
     "dashboard",
+    "projecao",
     "extintores",
     "locais",
     "vencimentos",
@@ -1564,4 +2345,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     "configuracoes",
   ];
   navigate(valid.includes(hash) ? hash : "dashboard");
+}
+
+let appStarted = false;
+
+document.addEventListener("DOMContentLoaded", async () => {
+  await waitForCloud();
+  const cloud = window.FireBoardCloud;
+
+  if (!cloud?.isConfigured?.()) {
+    return;
+  }
+
+  window.addEventListener("fireboard-auth", async (ev) => {
+    const user = ev.detail?.user;
+    if (!user) {
+      appStarted = false;
+      return;
+    }
+    if (appStarted) return;
+    appStarted = true;
+    await bootstrapApp();
+  });
+
+  const user = await cloud.waitForAuth();
+  if (user && !appStarted) {
+    appStarted = true;
+    await bootstrapApp();
+  }
 });

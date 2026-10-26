@@ -4,12 +4,44 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FireBoard — Controle de Extintores</title>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("fireboard_theme_v1");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <script src="chart.umd.min.js"></script>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <div class="app">
+<body class="is-locked">
+  <div id="loginGate" class="login-gate">
+    <form id="loginForm" class="login-card" autocomplete="on">
+      <div class="login-brand">
+        <div class="brand-mark"><i class="fa-solid fa-fire-extinguisher"></i></div>
+        <div>
+          <strong>FireBoard</strong>
+          <small>Acesso compartilhado</small>
+        </div>
+      </div>
+      <h1>Entrar no painel</h1>
+      <p class="login-lead">Use o e-mail e a senha criados no Firebase. Os dados ficam iguais para todos os usuários.</p>
+      <label class="login-field">
+        <span>E-mail</span>
+        <input id="loginEmail" type="email" required placeholder="seu@email.com" autocomplete="username" />
+      </label>
+      <label class="login-field">
+        <span>Senha</span>
+        <input id="loginPassword" type="password" required placeholder="••••••••" autocomplete="current-password" minlength="6" />
+      </label>
+      <p id="loginMsg" class="login-msg" role="alert"></p>
+      <button type="submit" class="btn-primary" id="btnLogin">Entrar</button>
+    </form>
+  </div>
+
+  <div id="appShell" class="app" hidden>
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-mark"><i class="fa-solid fa-fire-extinguisher"></i></div>
@@ -32,6 +64,9 @@
         <div id="nav-main" class="nav-group">
           <button type="button" class="nav-item active" data-page="dashboard">
             <span class="nav-ico">▦</span> Dashboard
+          </button>
+          <button type="button" class="nav-item" data-page="projecao">
+            <span class="nav-ico">↗</span> Projeção próximo ano
           </button>
           <button type="button" class="nav-item" data-page="precos">
             <span class="nav-ico">R$</span> Valores de recarga
@@ -88,6 +123,7 @@
           <strong>Franklin Silva</strong>
           <small>SESMT · Segurança</small>
         </div>
+        <button type="button" class="btn-logout" id="btnLogout" title="Sair">Sair</button>
       </div>
     </aside>
 
@@ -98,16 +134,45 @@
           <p>Painel de controle de extintores — status de recarga e teste hidrostático.</p>
         </div>
         <div class="topbar-actions">
+          <button class="icon-btn" type="button" id="btnTheme" title="Modo claro" aria-label="Ativar modo claro">
+            <i class="fa-solid fa-sun" id="themeIcon"></i>
+          </button>
           <div class="date-chip">
             <i class="fa-regular fa-calendar"></i>
             <span id="todayDate"></span>
           </div>
-          <button class="icon-btn" type="button" title="Alertas">
-            <i class="fa-regular fa-bell"></i>
-            <span class="badge" id="alertBadge">0</span>
+          <button class="btn-print" type="button" id="btnPrint" title="Imprimir em paisagem (gestão à vista)">
+            <i class="fa-solid fa-print"></i>
+            <span>Imprimir painel</span>
           </button>
+          <div class="alert-wrap">
+            <button class="icon-btn" type="button" id="btnAlerts" title="Alertas" aria-expanded="false" aria-controls="alertsPanel">
+              <i class="fa-regular fa-bell"></i>
+              <span class="badge" id="alertBadge" hidden>0</span>
+            </button>
+            <div class="alerts-panel" id="alertsPanel" hidden>
+              <div class="alerts-head">
+                <strong>Alertas</strong>
+                <button type="button" class="link-btn" id="btnCloseAlerts">Fechar</button>
+              </div>
+              <div class="alerts-body" id="alertsBody"></div>
+            </div>
+          </div>
         </div>
       </header>
+
+      <div id="toastHost" class="toast-host" aria-live="polite"></div>
+
+      <div class="print-banner" aria-hidden="true">
+        <div class="print-banner-brand">
+          <strong>FireBoard</strong>
+          <span>Gestão à Vista — Controle de Extintores</span>
+        </div>
+        <div class="print-banner-meta">
+          <span id="printPageTitle">Dashboard</span>
+          <span id="printDateStamp"></span>
+        </div>
+      </div>
 
       <!-- DASHBOARD -->
       <section id="page-dashboard" class="page active">
@@ -231,6 +296,135 @@
             <button type="button" class="btn-primary" data-page="relatorios">Ver relatório detalhado</button>
           </div>
         </section>
+      </section>
+
+      <!-- PROJECAO PROXIMO ANO -->
+      <section id="page-projecao" class="page">
+        <div class="page-head">
+          <div>
+            <h2 id="projTitle">Projeção — próximo ano</h2>
+            <p class="sub" id="projSub">Recargas e testes hidrostáticos previstos</p>
+          </div>
+          <div class="filters-inline">
+            <button type="button" class="btn-ghost" id="btnExportProj">Exportar projeção (CSV)</button>
+            <button type="button" class="btn-print" id="btnPrintProj" title="Imprimir em paisagem">
+              <i class="fa-solid fa-print"></i>
+              <span>Imprimir</span>
+            </button>
+          </div>
+        </div>
+
+        <section class="kpi-row">
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Recargas previstas</span><div class="kpi-icon orange"><i class="fa-solid fa-rotate"></i></div></div>
+            <strong id="projKpiRecargas">0</strong>
+            <div class="kpi-trend up" id="projKpiRecargasTrend">Ciclo anual</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Testes TH previstos</span><div class="kpi-icon green"><i class="fa-solid fa-droplet"></i></div></div>
+            <strong id="projKpiTh">0</strong>
+            <div class="kpi-trend up" id="projKpiThTrend">A cada 5 anos</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Custo projetado</span><div class="kpi-icon orange"><i class="fa-solid fa-coins"></i></div></div>
+            <strong id="projKpiCusto">R$ 0</strong>
+            <div class="kpi-trend up" id="projKpiCustoTrend">Recargas + TH</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-top"><span>Mês de pico</span><div class="kpi-icon red"><i class="fa-solid fa-chart-column"></i></div></div>
+            <strong id="projKpiPico">—</strong>
+            <div class="kpi-trend down" id="projKpiPicoTrend">Maior volume</div>
+          </article>
+        </section>
+
+        <section class="insight">
+          <div class="insight-text">
+            <h3>Resumo da projeção</h3>
+            <p id="projInsight">Carregando...</p>
+          </div>
+          <div class="insight-actions">
+            <span id="projStamp"></span>
+          </div>
+        </section>
+
+        <section class="mid-grid">
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2>Custo mensal projetado</h2>
+                <p class="sub">Distribuição ao longo do ano</p>
+              </div>
+            </div>
+            <div class="chart-wrap chart-wrap--bar"><canvas id="chartProjMes"></canvas></div>
+          </article>
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2>Custo por departamento</h2>
+                <p class="sub">Prioridade orçamentária</p>
+              </div>
+            </div>
+            <div class="chart-wrap chart-wrap--bar"><canvas id="chartProjDpto"></canvas></div>
+          </article>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2>Recargas por mês</h2>
+                <p class="sub">Quantidade de extintores</p>
+              </div>
+            </div>
+            <div class="chart-wrap chart-wrap--bar"><canvas id="chartProjQtd"></canvas></div>
+          </article>
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2>Maiores custos</h2>
+                <p class="sub">Top prioridades do ano</p>
+              </div>
+            </div>
+            <ul class="tx-list" id="projTopList"></ul>
+          </article>
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <h2>Por tipo</h2>
+                <p class="sub">Volume de recargas</p>
+              </div>
+            </div>
+            <ul class="goal-list" id="projTipoList"></ul>
+          </article>
+        </section>
+
+        <article class="card table-card">
+          <div class="card-head">
+            <div>
+              <h2>Detalhamento da projeção</h2>
+              <p class="sub">Extintores com recarga ou TH previstos no próximo ano</p>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nº</th>
+                  <th>Local</th>
+                  <th>Dept.</th>
+                  <th>Tipo</th>
+                  <th>Carga</th>
+                  <th>Recarga</th>
+                  <th>Recarga (R$)</th>
+                  <th>TH</th>
+                  <th>TH (R$)</th>
+                  <th>Total (R$)</th>
+                </tr>
+              </thead>
+              <tbody id="projTableBody"></tbody>
+            </table>
+          </div>
+        </article>
       </section>
 
       <!-- EXTINTORES -->
@@ -567,7 +761,7 @@
           <div class="card-head">
             <div>
               <h2>Custo de cada recarga</h2>
-              <p class="sub">Valor unitário por extintor no ano selecionado</p>
+              <p class="sub">Todos os extintores do inventário · custo no ano selecionado</p>
             </div>
           </div>
           <div class="table-wrap">
@@ -673,6 +867,7 @@
         <div class="page-head"><h2>Configurações</h2></div>
         <article class="card config-card">
           <div class="config-row"><span>Fonte de dados</span><strong id="cfgFonte">PDF + planilha mensal</strong></div>
+          <div class="config-row"><span>Nuvem (Firebase)</span><strong id="cfgCloud">Aguardando config</strong></div>
           <div class="config-row"><span>Registros</span><strong id="cfgTotal">69</strong></div>
           <div class="config-row"><span>Última atualização</span><strong id="cfgUpdated">—</strong></div>
           <div class="config-row"><span>Critério</span><strong>Validade da recarga + teste hidrostático</strong></div>
@@ -683,5 +878,6 @@
   </div>
   <script src="data.js"></script>
   <script src="app.js"></script>
+  <script type="module" src="cloud.js"></script>
 </body>
 </html>
