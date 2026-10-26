@@ -1484,11 +1484,11 @@ th {
   }
 }
 
-/* --- Gestao a vista: 1 pagina A4 paisagem (sem cortar conteudo) --- */
+/* --- Gestao a vista: 1 pagina A4 RETRATO --- */
 @media print {
   @page {
-    size: A4 landscape;
-    margin: 8mm;
+    size: A4 portrait;
+    margin: 10mm;
   }
 
   html,
@@ -1541,8 +1541,10 @@ th {
   .main {
     padding: 0 !important;
     background: #fff !important;
-    gap: 8px !important;
+    gap: 10px !important;
     overflow: visible !important;
+    transform: none !important;
+    width: 100% !important;
   }
 
   .print-banner {
@@ -1551,7 +1553,7 @@ th {
     align-items: flex-end;
     border-bottom: 2px solid #ff7a00;
     padding-bottom: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     color: #111;
   }
 
@@ -1562,14 +1564,14 @@ th {
   }
 
   .print-banner-brand strong {
-    font-size: 1.15rem;
+    font-size: 1.2rem;
     letter-spacing: -0.02em;
   }
 
   .print-banner-brand span,
   .print-banner-meta {
     color: #444;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
   }
 
   .print-banner-meta {
@@ -1592,12 +1594,13 @@ th {
   .page.active {
     display: flex !important;
     flex-direction: column;
-    gap: 8px !important;
+    gap: 10px !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    transform-origin: top left;
     overflow: visible !important;
+    transform: none !important;
+    width: 100% !important;
   }
 
   .page-head {
@@ -1615,7 +1618,7 @@ th {
   }
 
   .kpi-row {
-    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
   }
 
@@ -1623,16 +1626,20 @@ th {
     grid-template-columns: repeat(3, 1fr) !important;
   }
 
+  /* Empilha blocos principais no retrato para evitar sobreposicao */
   .mid-grid {
-    grid-template-columns: 1.45fr 1fr !important;
-    gap: 8px !important;
-    align-items: stretch !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
   }
 
   .bottom-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 8px !important;
-    align-items: stretch !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Lista de prioridade ocupa largura total abaixo dos 2 cards */
+  .bottom-grid > .card:first-child {
+    grid-column: 1 / -1;
   }
 
   .kpi-card,
@@ -1649,11 +1656,12 @@ th {
     break-inside: avoid;
     page-break-inside: avoid;
     padding: 10px 12px !important;
-    overflow: visible !important;
+    overflow: hidden !important;
+    position: relative !important;
   }
 
   .kpi-card strong {
-    font-size: 1.35rem !important;
+    font-size: 1.3rem !important;
     color: #111 !important;
   }
 
@@ -1690,14 +1698,14 @@ th {
   .kpi-icon.green,
   .kpi-icon.red {
     box-shadow: none !important;
-    width: 30px !important;
-    height: 30px !important;
-    font-size: 0.8rem !important;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.75rem !important;
   }
 
   .chart-wrap--bar {
-    height: 175px !important;
-    max-height: 175px !important;
+    height: 190px !important;
+    max-height: 190px !important;
   }
 
   .chart-wrap--area {
@@ -1706,9 +1714,9 @@ th {
   }
 
   .chart-wrap--donut {
-    width: 150px !important;
-    height: 150px !important;
-    max-height: 150px !important;
+    width: 140px !important;
+    height: 140px !important;
+    max-height: 140px !important;
     flex-shrink: 0 !important;
   }
 
@@ -1716,17 +1724,17 @@ th {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: 14px !important;
+    gap: 16px !important;
     min-height: 0 !important;
     overflow: visible !important;
   }
 
   .legend-list {
     flex: 1 1 auto !important;
-    min-width: 140px !important;
+    min-width: 0 !important;
     gap: 10px !important;
     overflow: visible !important;
-    font-size: 0.78rem !important;
+    font-size: 0.8rem !important;
   }
 
   .legend-list li {
@@ -1737,7 +1745,6 @@ th {
 
   .legend-list li > div {
     min-width: 0 !important;
-    overflow: visible !important;
   }
 
   .legend-list strong,
@@ -1750,8 +1757,8 @@ th {
 
   .tx-list,
   .goal-list {
-    max-height: none !important;
-    overflow: visible !important;
+    max-height: 120px !important;
+    overflow: hidden !important;
     gap: 6px !important;
   }
 
@@ -1764,14 +1771,14 @@ th {
   }
 
   .table-wrap {
-    max-height: 180px !important;
+    max-height: 220px !important;
     overflow: hidden !important;
   }
 
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.68rem;
+    font-size: 0.7rem;
   }
 
   th,
@@ -1794,9 +1801,9 @@ th {
   }
 
   .insight {
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 10px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
   }
 
   .insight::after {
@@ -1804,7 +1811,7 @@ th {
   }
 
   .local-cards {
-    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
   }
 
@@ -1812,5 +1819,6 @@ th {
     font-size: 0.85rem !important;
   }
 }
+
 
 

@@ -2014,26 +2014,14 @@ function clearPrintFit() {
     el.style.transform = "";
     el.style.width = "";
     el.style.maxHeight = "";
+    el.style.zoom = "";
   });
 }
 
 function fitPrintToOnePage() {
+  // Layout de impressao e controlado so por CSS (@page portrait).
+  // Nao usar transform/scale: isso causa sobreposicao no preview.
   clearPrintFit();
-  const main = document.querySelector(".main");
-  const page = document.querySelector(".page.active");
-  const target = main || page;
-  if (!target) return;
-  // Area util A4 paisagem (~277x190 mm) em px a 96dpi
-  const maxW = 1020;
-  const maxH = 680;
-  const rect = target.getBoundingClientRect();
-  if (!rect.width || !rect.height) return;
-  const scale = Math.min(1, maxW / rect.width, maxH / rect.height);
-  if (scale < 0.995) {
-    target.style.transformOrigin = "top left";
-    target.style.transform = `scale(${scale})`;
-    target.style.width = `${(100 / scale).toFixed(2)}%`;
-  }
 }
 
 function printGestaoAVista() {
@@ -2053,12 +2041,12 @@ function printGestaoAVista() {
   navigate(currentPage);
   requestAnimationFrame(() => {
     setTimeout(() => {
+      clearPrintFit();
       Object.values(charts).forEach((c) => {
         try { c?.resize?.(); } catch (_) {}
       });
-      fitPrintToOnePage();
       window.print();
-    }, 280);
+    }, 320);
   });
 }
 
