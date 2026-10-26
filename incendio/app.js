@@ -2009,6 +2009,7 @@ const PRINT_TITLES = {
 };
 
 
+
 function clearPrintFit() {
   document.querySelectorAll(".main, .page.active").forEach((el) => {
     el.style.transform = "";
@@ -2018,10 +2019,19 @@ function clearPrintFit() {
   });
 }
 
-function fitPrintToOnePage() {
-  // Layout de impressao e controlado so por CSS (@page portrait).
-  // Nao usar transform/scale: isso causa sobreposicao no preview.
+function restoreAfterPrint() {
   clearPrintFit();
+  document.body.classList.remove("is-printing");
+  // Re-renderiza a tela atual para gráficos/layout voltarem ao normal na web
+  requestAnimationFrame(() => {
+    try {
+      navigate(currentPage);
+    } catch (_) {
+      Object.values(charts).forEach((c) => {
+        try { c?.resize?.(); } catch (e) {}
+      });
+    }
+  });
 }
 
 function printGestaoAVista() {
@@ -2037,17 +2047,8 @@ function printGestaoAVista() {
       minute: "2-digit",
     });
   }
-  document.body.classList.add("is-printing");
-  navigate(currentPage);
-  requestAnimationFrame(() => {
-    setTimeout(() => {
-      clearPrintFit();
-      Object.values(charts).forEach((c) => {
-        try { c?.resize?.(); } catch (_) {}
-      });
-      window.print();
-    }, 320);
-  });
+  // Nao alterar o DOM da tela antes de imprimir (evita desconfigurar a web)
+  window.print();
 }
 
 window.addEventListener("beforeprint", () => {
@@ -2067,8 +2068,17 @@ window.addEventListener("beforeprint", () => {
 });
 
 window.addEventListener("afterprint", () => {
-  document.body.classList.remove("is-printing");
+  restoreAfterPrint();
 });
+
+if (window.matchMedia) {
+  const mq = window.matchMedia("print");
+  const onMq = (e) => {
+    if (!e.matches) restoreAfterPrint();
+  };
+  if (mq.addEventListener) mq.addEventListener("change", onMq);
+  else if (mq.addListener) mq.addListener(onMq);
+}
 
 function exportOrcamentoCSV() {
   const year = selectedYear();
