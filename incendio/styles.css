@@ -1486,19 +1486,21 @@ th {
   }
 }
 
-/* --- Gestao a vista: 1 pagina A4 RETRATO --- */
+/* --- Relatorio executivo: 1 pagina A4 PAISAGEM (estilo Power BI) --- */
 @media print {
   @page {
-    size: A4 portrait;
-    margin: 10mm;
+    size: A4 landscape;
+    margin: 7mm;
   }
 
   html,
   body {
     background: #fff !important;
     color: #111 !important;
-    min-height: 0 !important;
+    width: 100% !important;
     height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow: visible !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -1508,7 +1510,9 @@ th {
     overflow: visible !important;
   }
 
+  /* Oculta chrome da aplicacao e blocos pouco relevantes no 1-pager */
   #loginGate,
+  .login-gate,
   .sidebar,
   .topbar,
   .topbar-actions,
@@ -1524,12 +1528,28 @@ th {
   .btn-ghost,
   .insight-actions .btn-primary,
   .sparkline,
+  .kpi-trend i,
   .no-print,
   .page-head .filters-inline,
   select,
   input,
-  button {
+  button,
+  .print-hide {
     display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  #loginGate,
+  .login-gate {
+    position: absolute !important;
+    left: -9999px !important;
+    visibility: hidden !important;
   }
 
   #appShell,
@@ -1537,56 +1557,69 @@ th {
     display: block !important;
     width: 100% !important;
     min-height: 0 !important;
+    height: auto !important;
     grid-template-columns: 1fr !important;
   }
 
   .main {
+    display: flex !important;
+    flex-direction: column !important;
     padding: 0 !important;
+    margin: 0 !important;
     background: #fff !important;
-    gap: 10px !important;
-    overflow: visible !important;
-    transform: none !important;
+    gap: 5px !important;
     width: 100% !important;
+    max-height: 196mm !important;
+    overflow: hidden !important;
+    transform: none !important;
+    page-break-before: avoid !important;
+    page-break-after: avoid !important;
+    break-before: avoid !important;
+    break-after: avoid !important;
   }
 
   .print-banner {
     display: flex !important;
     justify-content: space-between;
-    align-items: flex-end;
-    border-bottom: 2px solid #ff7a00;
-    padding-bottom: 6px;
-    margin-bottom: 10px;
+    align-items: center;
+    border-bottom: 2.5px solid #ff7a00;
+    padding: 0 0 5px !important;
+    margin: 0 0 4px !important;
     color: #111;
+    flex-shrink: 0 !important;
   }
 
   .print-banner-brand {
     display: flex !important;
     flex-direction: column !important;
-    gap: 2px;
+    gap: 0;
   }
 
   .print-banner-brand strong {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     letter-spacing: -0.02em;
+    line-height: 1.15;
   }
 
   .print-banner-brand span,
   .print-banner-meta {
-    color: #444;
-    font-size: 0.78rem;
+    color: #555;
+    font-size: 0.68rem;
+    line-height: 1.2;
   }
 
   .print-banner-meta {
     display: flex !important;
     flex-direction: column !important;
     align-items: flex-end;
-    gap: 2px;
+    gap: 0;
     text-align: right;
   }
 
-  .print-banner,
-  .print-banner * {
-    display: flex !important;
+  .print-banner-brand strong,
+  .print-banner-brand span,
+  .print-banner-meta span {
+    display: block !important;
   }
 
   .page {
@@ -1595,22 +1628,27 @@ th {
 
   .page.active {
     display: flex !important;
-    flex-direction: column;
-    gap: 10px !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    transform: none !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    overflow: visible !important;
-    transform: none !important;
-    width: 100% !important;
+    flex: 1 1 auto !important;
   }
 
   .page-head {
     margin: 0 !important;
+    padding: 0 !important;
   }
 
   .page-head h2 {
-    font-size: 1.05rem !important;
+    font-size: 0.95rem !important;
     color: #111 !important;
     margin: 0 !important;
   }
@@ -1619,29 +1657,71 @@ th {
     display: none !important;
   }
 
+  /* Faixa de KPIs — 4 colunas (visao executiva) */
   .kpi-row {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8px !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
   }
 
   .kpi-row--3 {
     grid-template-columns: repeat(3, 1fr) !important;
   }
 
-  /* Empilha blocos principais no retrato para evitar sobreposicao */
+  .kpi-card {
+    padding: 8px 10px !important;
+    min-height: 0 !important;
+  }
+
+  .kpi-card strong {
+    font-size: 1.35rem !important;
+    line-height: 1.1 !important;
+    color: #111 !important;
+    display: block !important;
+    margin: 2px 0 !important;
+  }
+
+  .kpi-top {
+    margin-bottom: 0 !important;
+  }
+
+  .kpi-top span,
+  .kpi-trend {
+    font-size: 0.62rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .kpi-icon.orange,
+  .kpi-icon.green,
+  .kpi-icon.red {
+    box-shadow: none !important;
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 0.7rem !important;
+  }
+
+  /* Linha principal de analise: Local (maior) + Status */
   .mid-grid {
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
+    display: grid !important;
+    grid-template-columns: 1.55fr 1fr !important;
+    gap: 6px !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    align-items: stretch !important;
   }
 
+  /* Linha inferior: agenda + conformidade (oculta lista vazia de prioridade) */
   .bottom-grid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
+    display: grid !important;
+    grid-template-columns: 1.2fr 1fr !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+    min-height: 0 !important;
   }
 
-  /* Lista de prioridade ocupa largura total abaixo dos 2 cards */
-  .bottom-grid > .card:first-child {
-    grid-column: 1 / -1;
+  #page-dashboard .bottom-grid > .card:first-child {
+    display: none !important;
   }
 
   .kpi-card,
@@ -1655,29 +1735,26 @@ th {
     border: 1px solid #d4d4d8 !important;
     box-shadow: none !important;
     border-radius: 8px !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
-    padding: 10px 12px !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    padding: 8px 10px !important;
     overflow: hidden !important;
     position: relative !important;
+    margin: 0 !important;
   }
 
-  .kpi-card strong {
-    font-size: 1.3rem !important;
-    color: #111 !important;
-  }
-
-  .kpi-top span,
-  .kpi-trend {
-    font-size: 0.72rem !important;
+  .card-head {
+    margin-bottom: 4px !important;
+    gap: 4px !important;
   }
 
   .card h2,
   .insight h3,
   .greeting h1 {
     color: #111 !important;
-    font-size: 0.95rem !important;
-    margin: 0 0 4px !important;
+    font-size: 0.82rem !important;
+    margin: 0 !important;
+    letter-spacing: -0.01em !important;
   }
 
   .muted,
@@ -1691,103 +1768,102 @@ th {
     color: #333 !important;
   }
 
-  .insight p {
-    font-size: 0.8rem !important;
-    line-height: 1.4 !important;
-  }
-
-  .kpi-icon.orange,
-  .kpi-icon.green,
-  .kpi-icon.red {
-    box-shadow: none !important;
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 0.75rem !important;
-  }
-
   .chart-wrap--bar {
-    height: 190px !important;
-    max-height: 190px !important;
+    height: 118px !important;
+    max-height: 118px !important;
   }
 
   .chart-wrap--area {
-    height: 150px !important;
-    max-height: 150px !important;
+    height: 96px !important;
+    max-height: 96px !important;
   }
 
   .chart-wrap--donut {
-    width: 140px !important;
-    height: 140px !important;
-    max-height: 140px !important;
+    width: 108px !important;
+    height: 108px !important;
+    max-height: 108px !important;
     flex-shrink: 0 !important;
+    margin: 0 !important;
   }
 
   .donut-layout {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: 16px !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
     min-height: 0 !important;
-    overflow: visible !important;
+    height: 118px !important;
+    overflow: hidden !important;
+  }
+
+  .donut-center strong {
+    font-size: 1.05rem !important;
+  }
+
+  .donut-center span {
+    font-size: 0.62rem !important;
   }
 
   .legend-list {
     flex: 1 1 auto !important;
     min-width: 0 !important;
-    gap: 10px !important;
-    overflow: visible !important;
-    font-size: 0.8rem !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+    font-size: 0.7rem !important;
   }
 
   .legend-list li {
-    grid-template-columns: 10px minmax(0, 1fr) auto !important;
-    gap: 8px !important;
+    grid-template-columns: 8px minmax(0, 1fr) auto !important;
+    gap: 6px !important;
     align-items: start !important;
   }
 
-  .legend-list li > div {
-    min-width: 0 !important;
+  .legend-list strong {
+    font-size: 0.72rem !important;
   }
 
-  .legend-list strong,
   .legend-list small {
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: unset !important;
-    display: block !important;
+    font-size: 0.6rem !important;
   }
 
   .tx-list,
   .goal-list {
-    max-height: 120px !important;
+    max-height: 96px !important;
     overflow: hidden !important;
-    gap: 6px !important;
+    gap: 4px !important;
   }
 
   .tx-item,
   .goal-item,
   .goal-list li {
-    padding: 6px 8px !important;
-    font-size: 0.74rem !important;
+    padding: 4px 6px !important;
+    font-size: 0.66rem !important;
     background: #f4f4f5 !important;
+    border-radius: 6px !important;
+  }
+
+  .progress {
+    height: 5px !important;
+    margin-top: 3px !important;
   }
 
   .table-wrap {
-    max-height: 220px !important;
+    max-height: 110px !important;
     overflow: hidden !important;
   }
 
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.7rem;
+    font-size: 0.62rem;
   }
 
   th,
   td {
     border: 1px solid #d4d4d8 !important;
     color: #111 !important;
-    padding: 3px 5px !important;
+    padding: 2px 4px !important;
   }
 
   thead th {
@@ -1798,32 +1874,71 @@ th {
   .badge-warn,
   .status-pill {
     border: 1px solid currentColor !important;
-    font-size: 0.65rem !important;
-    padding: 1px 6px !important;
+    font-size: 0.58rem !important;
+    padding: 0 4px !important;
   }
 
+  /* Rodape analitico compacto */
   .insight {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 6px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 7px 10px !important;
+    flex-shrink: 0 !important;
+    width: 100% !important;
+    align-self: stretch !important;
   }
 
   .insight::after {
     display: none !important;
   }
 
+  .insight h3 {
+    font-size: 0.72rem !important;
+    margin: 0 0 1px !important;
+  }
+
+  .insight p {
+    font-size: 0.68rem !important;
+    line-height: 1.25 !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  .insight-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    gap: 0 !important;
+  }
+
+  .insight-actions span {
+    display: block !important;
+    font-size: 0.62rem !important;
+    color: #666 !important;
+  }
+
   .local-cards {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8px !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
   }
 
   .local-card h3 {
-    font-size: 0.85rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Projecao: mesma disciplina visual de 1 pagina */
+  #page-projecao .mid-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  #page-projecao .bottom-grid,
+  #page-projecao .table-wrap {
+    max-height: 90px !important;
   }
 }
-
-
-
 
 
 /* print-safe screen resets */

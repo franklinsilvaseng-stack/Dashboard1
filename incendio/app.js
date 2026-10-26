@@ -2047,7 +2047,7 @@ function printGestaoAVista() {
       minute: "2-digit",
     });
   }
-  // Nao alterar o DOM da tela antes de imprimir (evita desconfigurar a web)
+  // Impressao usa apenas @media print (nao altera layout da web)
   window.print();
 }
 
@@ -2065,6 +2065,10 @@ window.addEventListener("beforeprint", () => {
     });
   }
   document.body.classList.add("is-printing");
+  // Ajusta canvas aos containers compactos do layout de impressao
+  Object.values(charts).forEach((c) => {
+    try { c?.resize?.(); } catch (_) {}
+  });
 });
 
 window.addEventListener("afterprint", () => {
