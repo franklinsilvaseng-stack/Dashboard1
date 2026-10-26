@@ -611,10 +611,22 @@ function renderLocaisChart(data) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { bottom: 6 } },
       plugins: { legend: { display: false } },
       scales: {
         x: {
-          ticks: { color: COLORS.muted, maxRotation: 45, minRotation: 25, font: { size: 10 } },
+          ticks: {
+            color: COLORS.muted,
+            maxRotation: 40,
+            minRotation: 20,
+            autoSkip: true,
+            maxTicksLimit: 7,
+            font: { size: 9 },
+            callback(value) {
+              const label = this.getLabelForValue(value);
+              return label && label.length > 16 ? label.slice(0, 15) + "…" : label;
+            },
+          },
           grid: { display: false },
         },
         y: {
@@ -1998,27 +2010,29 @@ const PRINT_TITLES = {
 
 
 function clearPrintFit() {
-  const page = document.querySelector(".page.active");
-  if (!page) return;
-  page.style.transform = "";
-  page.style.width = "";
-  page.style.maxHeight = "";
+  document.querySelectorAll(".main, .page.active").forEach((el) => {
+    el.style.transform = "";
+    el.style.width = "";
+    el.style.maxHeight = "";
+  });
 }
 
 function fitPrintToOnePage() {
   clearPrintFit();
+  const main = document.querySelector(".main");
   const page = document.querySelector(".page.active");
-  if (!page) return;
+  const target = main || page;
+  if (!target) return;
   // Area util A4 paisagem (~277x190 mm) em px a 96dpi
-  const maxW = 1040;
-  const maxH = 690;
-  const rect = page.getBoundingClientRect();
+  const maxW = 1020;
+  const maxH = 680;
+  const rect = target.getBoundingClientRect();
   if (!rect.width || !rect.height) return;
   const scale = Math.min(1, maxW / rect.width, maxH / rect.height);
   if (scale < 0.995) {
-    page.style.transformOrigin = "top left";
-    page.style.transform = `scale(${scale})`;
-    page.style.width = `${(100 / scale).toFixed(2)}%`;
+    target.style.transformOrigin = "top left";
+    target.style.transform = `scale(${scale})`;
+    target.style.width = `${(100 / scale).toFixed(2)}%`;
   }
 }
 
@@ -2038,7 +2052,13 @@ function printGestaoAVista() {
   document.body.classList.add("is-printing");
   navigate(currentPage);
   requestAnimationFrame(() => {
-    setTimeout(() => window.print(), 180);
+    setTimeout(() => {
+      Object.values(charts).forEach((c) => {
+        try { c?.resize?.(); } catch (_) {}
+      });
+      fitPrintToOnePage();
+      window.print();
+    }, 280);
   });
 }
 

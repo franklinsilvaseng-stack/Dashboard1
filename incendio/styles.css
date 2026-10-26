@@ -887,7 +887,7 @@ input {
 
 .mid-grid {
   display: grid;
-  grid-template-columns: 1.55fr 1fr;
+  grid-template-columns: 1.35fr 1.2fr;
   gap: 14px;
 }
 
@@ -902,7 +902,7 @@ input {
 }
 
 .chart-wrap--bar {
-  height: 280px;
+  height: 300px;
 }
 
 .chart-wrap--area {
@@ -918,8 +918,9 @@ input {
 .donut-layout {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 16px;
   min-height: 240px;
+  overflow: visible;
 }
 
 .donut-center {
@@ -947,6 +948,8 @@ input {
   flex-direction: column;
   gap: 12px;
   flex: 1;
+  min-width: 0;
+  overflow: visible;
 }
 
 .legend-list li {
@@ -1481,11 +1484,11 @@ th {
   }
 }
 
-/* --- Gestao a vista: impressao em 1 pagina (A4 paisagem) --- */
+/* --- Gestao a vista: 1 pagina A4 paisagem (sem cortar conteudo) --- */
 @media print {
   @page {
     size: A4 landscape;
-    margin: 6mm;
+    margin: 8mm;
   }
 
   html,
@@ -1494,13 +1497,13 @@ th {
     color: #111 !important;
     min-height: 0 !important;
     height: auto !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
   body.is-locked {
-    overflow: hidden !important;
+    overflow: visible !important;
   }
 
   #loginGate,
@@ -1538,8 +1541,8 @@ th {
   .main {
     padding: 0 !important;
     background: #fff !important;
-    gap: 6px !important;
-    overflow: hidden !important;
+    gap: 8px !important;
+    overflow: visible !important;
   }
 
   .print-banner {
@@ -1547,33 +1550,33 @@ th {
     justify-content: space-between;
     align-items: flex-end;
     border-bottom: 2px solid #ff7a00;
-    padding-bottom: 4px;
-    margin-bottom: 6px;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
     color: #111;
   }
 
   .print-banner-brand {
     display: flex !important;
     flex-direction: column !important;
-    gap: 1px;
+    gap: 2px;
   }
 
   .print-banner-brand strong {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     letter-spacing: -0.02em;
   }
 
   .print-banner-brand span,
   .print-banner-meta {
     color: #444;
-    font-size: 0.72rem;
+    font-size: 0.75rem;
   }
 
   .print-banner-meta {
     display: flex !important;
     flex-direction: column !important;
     align-items: flex-end;
-    gap: 1px;
+    gap: 2px;
     text-align: right;
   }
 
@@ -1589,11 +1592,12 @@ th {
   .page.active {
     display: flex !important;
     flex-direction: column;
-    gap: 6px !important;
+    gap: 8px !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     transform-origin: top left;
+    overflow: visible !important;
   }
 
   .page-head {
@@ -1601,7 +1605,7 @@ th {
   }
 
   .page-head h2 {
-    font-size: 1rem !important;
+    font-size: 1.05rem !important;
     color: #111 !important;
     margin: 0 !important;
   }
@@ -1612,7 +1616,7 @@ th {
 
   .kpi-row {
     grid-template-columns: repeat(4, 1fr) !important;
-    gap: 6px !important;
+    gap: 8px !important;
   }
 
   .kpi-row--3 {
@@ -1620,13 +1624,15 @@ th {
   }
 
   .mid-grid {
-    grid-template-columns: 1.35fr 1fr !important;
-    gap: 6px !important;
+    grid-template-columns: 1.45fr 1fr !important;
+    gap: 8px !important;
+    align-items: stretch !important;
   }
 
   .bottom-grid {
     grid-template-columns: repeat(3, 1fr) !important;
-    gap: 6px !important;
+    gap: 8px !important;
+    align-items: stretch !important;
   }
 
   .kpi-card,
@@ -1639,28 +1645,29 @@ th {
     background: #fff !important;
     border: 1px solid #d4d4d8 !important;
     box-shadow: none !important;
-    border-radius: 6px !important;
+    border-radius: 8px !important;
     break-inside: avoid;
     page-break-inside: avoid;
-    padding: 8px 10px !important;
+    padding: 10px 12px !important;
+    overflow: visible !important;
   }
 
   .kpi-card strong {
-    font-size: 1.25rem !important;
+    font-size: 1.35rem !important;
     color: #111 !important;
   }
 
   .kpi-top span,
   .kpi-trend {
-    font-size: 0.7rem !important;
+    font-size: 0.72rem !important;
   }
 
   .card h2,
   .insight h3,
   .greeting h1 {
     color: #111 !important;
-    font-size: 0.92rem !important;
-    margin: 0 0 2px !important;
+    font-size: 0.95rem !important;
+    margin: 0 0 4px !important;
   }
 
   .muted,
@@ -1675,63 +1682,103 @@ th {
   }
 
   .insight p {
-    font-size: 0.78rem !important;
-    line-height: 1.35 !important;
+    font-size: 0.8rem !important;
+    line-height: 1.4 !important;
   }
 
   .kpi-icon.orange,
   .kpi-icon.green,
   .kpi-icon.red {
     box-shadow: none !important;
-    width: 28px !important;
-    height: 28px !important;
-    font-size: 0.75rem !important;
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 0.8rem !important;
   }
 
-  .chart-wrap,
-  .chart-wrap--bar,
-  .chart-wrap--donut,
+  .chart-wrap--bar {
+    height: 175px !important;
+    max-height: 175px !important;
+  }
+
   .chart-wrap--area {
-    max-height: 120px !important;
-    height: 120px !important;
+    height: 150px !important;
+    max-height: 150px !important;
+  }
+
+  .chart-wrap--donut {
+    width: 150px !important;
+    height: 150px !important;
+    max-height: 150px !important;
+    flex-shrink: 0 !important;
   }
 
   .donut-layout {
-    gap: 8px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 14px !important;
+    min-height: 0 !important;
+    overflow: visible !important;
   }
 
   .legend-list {
-    font-size: 0.72rem !important;
+    flex: 1 1 auto !important;
+    min-width: 140px !important;
+    gap: 10px !important;
+    overflow: visible !important;
+    font-size: 0.78rem !important;
+  }
+
+  .legend-list li {
+    grid-template-columns: 10px minmax(0, 1fr) auto !important;
+    gap: 8px !important;
+    align-items: start !important;
+  }
+
+  .legend-list li > div {
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+
+  .legend-list strong,
+  .legend-list small {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    display: block !important;
   }
 
   .tx-list,
   .goal-list {
-    max-height: 120px !important;
-    overflow: hidden !important;
+    max-height: none !important;
+    overflow: visible !important;
+    gap: 6px !important;
   }
 
   .tx-item,
+  .goal-item,
   .goal-list li {
-    padding: 4px 0 !important;
-    font-size: 0.72rem !important;
+    padding: 6px 8px !important;
+    font-size: 0.74rem !important;
+    background: #f4f4f5 !important;
   }
 
   .table-wrap {
-    max-height: 150px !important;
+    max-height: 180px !important;
     overflow: hidden !important;
   }
 
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.65rem;
+    font-size: 0.68rem;
   }
 
   th,
   td {
     border: 1px solid #d4d4d8 !important;
     color: #111 !important;
-    padding: 2px 4px !important;
+    padding: 3px 5px !important;
   }
 
   thead th {
@@ -1742,23 +1789,28 @@ th {
   .badge-warn,
   .status-pill {
     border: 1px solid currentColor !important;
-    font-size: 0.62rem !important;
-    padding: 1px 5px !important;
+    font-size: 0.65rem !important;
+    padding: 1px 6px !important;
   }
 
   .insight {
     flex-direction: row !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 10px !important;
+  }
+
+  .insight::after {
+    display: none !important;
   }
 
   .local-cards {
     grid-template-columns: repeat(4, 1fr) !important;
-    gap: 6px !important;
+    gap: 8px !important;
   }
 
   .local-card h3 {
     font-size: 0.85rem !important;
   }
 }
+
 
