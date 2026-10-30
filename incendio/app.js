@@ -2220,15 +2220,18 @@ window.addEventListener("beforeprint", () => {
   preparePrintMeta();
   document.body.classList.add("is-printing");
   if (PRINT_LIST_PAGES.has(currentPage)) unlockPrintTables();
-  // Dashboard: re-renderiza com inventário completo (não herda filtro mês/ano)
+  // Dashboard: recria gráficos já no layout de impressão (evita donut deformado)
   if (currentPage === "dashboard") {
     try { refreshDashboard(); } catch (_) {}
   }
-  // Ajusta canvas aos containers do layout de impressao (apos o CSS print aplicar)
-  requestAnimationFrame(() => {
+  const fitCharts = () => {
     Object.values(charts).forEach((c) => {
       try { c?.resize?.(); } catch (_) {}
     });
+  };
+  requestAnimationFrame(() => {
+    fitCharts();
+    requestAnimationFrame(fitCharts);
   });
 });
 

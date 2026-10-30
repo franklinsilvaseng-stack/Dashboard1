@@ -909,10 +909,26 @@ input {
   gap: 14px;
 }
 
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (min-width: 1280px) {
+  .analytics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .bottom-grid {
   display: grid;
   grid-template-columns: 1.15fr 1.1fr 0.95fr;
   gap: 14px;
+}
+
+#page-dashboard .bottom-grid {
+  grid-template-columns: 1fr;
 }
 
 .chart-wrap {
@@ -1444,7 +1460,8 @@ th {
 @media (max-width: 1200px) {
   .kpi-row,
   .bottom-grid,
-  .local-cards {
+  .local-cards,
+  .analytics-grid {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -1719,17 +1736,16 @@ th {
     font-size: 0.7rem !important;
   }
 
-  /* Linha principal de analise: Local (maior) + Status */
-  .mid-grid {
+  .mid-grid,
+  .analytics-grid {
     display: grid !important;
-    grid-template-columns: 1.55fr 1fr !important;
-    gap: 6px !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
     flex: 1 1 auto !important;
     min-height: 0 !important;
     align-items: stretch !important;
   }
 
-  /* Linha inferior: agenda + conformidade (oculta lista vazia de prioridade) */
   .bottom-grid {
     display: grid !important;
     grid-template-columns: 1.2fr 1fr !important;
@@ -1738,7 +1754,8 @@ th {
     min-height: 0 !important;
   }
 
-  #page-dashboard .bottom-grid > .card:first-child {
+  #page-dashboard .no-print-dashboard,
+  #page-dashboard .bottom-grid {
     display: none !important;
   }
 
@@ -1787,21 +1804,31 @@ th {
   }
 
   .chart-wrap--bar {
-    height: 118px !important;
-    max-height: 118px !important;
+    height: 130px !important;
+    max-height: 130px !important;
   }
 
   .chart-wrap--area {
-    height: 96px !important;
-    max-height: 96px !important;
+    height: 130px !important;
+    max-height: 130px !important;
   }
 
   .chart-wrap--donut {
-    width: 108px !important;
-    height: 108px !important;
-    max-height: 108px !important;
-    flex-shrink: 0 !important;
+    position: relative !important;
+    width: 110px !important;
+    height: 110px !important;
+    max-width: 110px !important;
+    max-height: 110px !important;
+    flex: 0 0 110px !important;
     margin: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .chart-wrap--donut canvas {
+    width: 110px !important;
+    height: 110px !important;
+    max-width: 110px !important;
+    max-height: 110px !important;
   }
 
   .donut-layout {
@@ -1809,10 +1836,18 @@ th {
     flex-direction: row !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    gap: 12px !important;
+    gap: 10px !important;
     min-height: 0 !important;
-    height: 118px !important;
+    height: 130px !important;
     overflow: hidden !important;
+  }
+
+  .donut-center {
+    position: absolute !important;
+    inset: 0 !important;
+    display: grid !important;
+    place-content: center !important;
+    pointer-events: none !important;
   }
 
   .donut-center strong {
@@ -1826,9 +1861,9 @@ th {
   .legend-list {
     flex: 1 1 auto !important;
     min-width: 0 !important;
-    gap: 8px !important;
+    gap: 6px !important;
     overflow: hidden !important;
-    font-size: 0.7rem !important;
+    font-size: 0.68rem !important;
   }
 
   .legend-list li {
@@ -2070,20 +2105,21 @@ th {
   }
 
   /* =========================================================
-     Dashboard impresso = modelo PDF FIREBOARD_EXTINTORES
-     4 KPIs (com sparkline) + 4 gráficos alinhados na mesma linha
+     Dashboard impresso = modelo PDF (4 KPIs + grade 2x2 estável)
+     Evita display:contents (deforma no Chrome print)
      ========================================================= */
-  body.print-dashboard .main {
+  body.print-dashboard .main,
+  body:has(#page-dashboard.page.active) .main {
     max-height: 196mm !important;
     height: 196mm !important;
     gap: 8px !important;
     overflow: hidden !important;
   }
 
-  body.print-dashboard #page-dashboard {
-    display: grid !important;
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    grid-template-rows: auto minmax(0, 1fr) !important;
+  body.print-dashboard #page-dashboard,
+  #page-dashboard.page.active {
+    display: flex !important;
+    flex-direction: column !important;
     gap: 8px !important;
     height: 100% !important;
     max-height: none !important;
@@ -2091,72 +2127,70 @@ th {
     flex: 1 1 auto !important;
   }
 
-  body.print-dashboard #page-dashboard .kpi-row {
-    grid-column: 1 / -1 !important;
+  body.print-dashboard #page-dashboard .kpi-row,
+  #page-dashboard.page.active .kpi-row {
     display: grid !important;
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     gap: 8px !important;
-    align-items: stretch !important;
+    flex: 0 0 auto !important;
   }
 
-  body.print-dashboard #page-dashboard .kpi-card {
+  body.print-dashboard #page-dashboard .kpi-card,
+  #page-dashboard.page.active .kpi-card {
     display: flex !important;
     flex-direction: column !important;
     padding: 10px 12px 6px !important;
-    min-height: 92px !important;
+    min-height: 88px !important;
   }
 
-  body.print-dashboard #page-dashboard .kpi-card strong {
-    font-size: 1.55rem !important;
+  body.print-dashboard #page-dashboard .kpi-card strong,
+  #page-dashboard.page.active .kpi-card strong {
+    font-size: 1.5rem !important;
     margin: 4px 0 2px !important;
   }
 
-  body.print-dashboard #page-dashboard .kpi-trend {
-    font-size: 0.68rem !important;
-  }
-
-  body.print-dashboard #page-dashboard .sparkline {
+  body.print-dashboard #page-dashboard .sparkline,
+  #page-dashboard.page.active .sparkline {
     display: block !important;
     width: 100% !important;
-    height: 28px !important;
-    max-height: 28px !important;
+    height: 26px !important;
+    max-height: 26px !important;
     margin-top: auto !important;
     opacity: 1 !important;
   }
 
-  /* Achata mid + bottom: 4 cards iguais na 2ª linha (como no PDF) */
-  body.print-dashboard #page-dashboard .mid-grid,
-  body.print-dashboard #page-dashboard .bottom-grid {
-    display: contents !important;
+  body.print-dashboard #page-dashboard .analytics-grid,
+  #page-dashboard.page.active .analytics-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: 1fr 1fr !important;
+    gap: 8px !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    align-items: stretch !important;
   }
 
-  body.print-dashboard #page-dashboard .mid-grid > .card,
-  body.print-dashboard #page-dashboard .bottom-grid > .card:not(.print-hide) {
+  body.print-dashboard #page-dashboard .analytics-grid > .card,
+  #page-dashboard.page.active .analytics-grid > .card {
     display: flex !important;
     flex-direction: column !important;
     min-height: 0 !important;
-    height: 100% !important;
+    height: auto !important;
     padding: 8px 10px !important;
     overflow: hidden !important;
   }
 
-  body.print-dashboard #page-dashboard .print-hide,
-  body.print-dashboard #page-dashboard .insight {
+  body.print-dashboard #page-dashboard .no-print-dashboard,
+  body.print-dashboard #page-dashboard .insight,
+  #page-dashboard.page.active .no-print-dashboard,
+  #page-dashboard.page.active .insight {
     display: none !important;
   }
 
-  body.print-dashboard #page-dashboard .card-head {
-    flex-shrink: 0 !important;
-    margin-bottom: 6px !important;
-  }
-
-  body.print-dashboard #page-dashboard .card-head h2 {
-    font-size: 0.78rem !important;
-  }
-
-  body.print-dashboard #page-dashboard .card-head .sub {
+  body.print-dashboard #page-dashboard .card-head .sub,
+  #page-dashboard.page.active .card-head .sub {
     display: block !important;
-    font-size: 0.6rem !important;
+    font-size: 0.58rem !important;
     color: #666 !important;
     margin: 0 !important;
     max-height: none !important;
@@ -2166,52 +2200,49 @@ th {
   }
 
   body.print-dashboard #page-dashboard .chart-wrap--bar,
-  body.print-dashboard #page-dashboard .chart-wrap--area {
+  body.print-dashboard #page-dashboard .chart-wrap--area,
+  #page-dashboard.page.active .chart-wrap--bar,
+  #page-dashboard.page.active .chart-wrap--area {
     flex: 1 1 auto !important;
     height: auto !important;
-    min-height: 150px !important;
+    min-height: 120px !important;
     max-height: none !important;
   }
 
-  body.print-dashboard #page-dashboard .donut-layout {
+  body.print-dashboard #page-dashboard .donut-layout,
+  #page-dashboard.page.active .donut-layout {
     flex: 1 1 auto !important;
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 8px !important;
+    gap: 12px !important;
     height: auto !important;
-    min-height: 150px !important;
-    overflow: visible !important;
+    min-height: 120px !important;
+    max-height: none !important;
+    overflow: hidden !important;
   }
 
-  body.print-dashboard #page-dashboard .chart-wrap--donut {
+  body.print-dashboard #page-dashboard .chart-wrap--donut,
+  #page-dashboard.page.active .chart-wrap--donut {
     position: relative !important;
-    width: 120px !important;
-    height: 120px !important;
-    max-height: 120px !important;
-    margin: 0 auto !important;
-    flex-shrink: 0 !important;
+    width: 118px !important;
+    height: 118px !important;
+    max-width: 118px !important;
+    max-height: 118px !important;
+    flex: 0 0 118px !important;
+    margin: 0 !important;
+    overflow: hidden !important;
   }
 
-  body.print-dashboard #page-dashboard .donut-center {
-    position: absolute !important;
-    inset: 0 !important;
-    display: grid !important;
-    place-content: center !important;
-    pointer-events: none !important;
-  }
-
-  body.print-dashboard #page-dashboard .legend-list {
-    width: 100% !important;
-    flex: 0 0 auto !important;
-    gap: 4px !important;
-    overflow: visible !important;
-    font-size: 0.62rem !important;
+  body.print-dashboard #page-dashboard .chart-wrap--donut canvas,
+  #page-dashboard.page.active .chart-wrap--donut canvas {
+    width: 118px !important;
+    height: 118px !important;
   }
 
   body.print-dashboard #page-dashboard .goal-list,
-  body.print-dashboard #page-dashboard .tx-list {
+  #page-dashboard.page.active .goal-list {
     flex: 1 1 auto !important;
     max-height: none !important;
     overflow: hidden !important;
@@ -2219,13 +2250,11 @@ th {
   }
 
   body.print-dashboard #page-dashboard .goal-item,
-  body.print-dashboard #page-dashboard .goal-list li {
+  body.print-dashboard #page-dashboard .goal-list li,
+  #page-dashboard.page.active .goal-item,
+  #page-dashboard.page.active .goal-list li {
     padding: 5px 7px !important;
     font-size: 0.68rem !important;
-  }
-
-  body.print-dashboard .print-banner-brand strong {
-    font-size: 1.15rem !important;
   }
 }
 
