@@ -764,6 +764,24 @@ input {
   color: var(--text);
 }
 
+#filterVencMes,
+#filterVencAno,
+#filterVencCampo {
+  border-color: rgba(255, 122, 0, 0.35);
+}
+
+.cell-venc-match {
+  font-weight: 700;
+  color: var(--orange, #ff7a00);
+  background: rgba(255, 122, 0, 0.08);
+}
+
+.table-empty {
+  text-align: center;
+  padding: 28px 12px !important;
+  color: var(--muted, #71717a);
+}
+
 /* KPI cards */
 .kpi-row {
   display: grid;

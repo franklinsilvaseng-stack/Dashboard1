@@ -430,8 +430,34 @@
       <!-- EXTINTORES -->
       <section id="page-extintores" class="page">
         <div class="page-head">
-          <h2>Inventário de Extintores</h2>
+          <div>
+            <h2>Inventário de Extintores</h2>
+            <p class="sub" id="extFilterCount">Selecione o mês/ano para ver quem vence no período</p>
+          </div>
           <div class="filters-inline">
+            <select id="filterVencMes" title="Mês do vencimento" aria-label="Mês do vencimento">
+              <option value="">Todos os meses</option>
+              <option value="1">Janeiro</option>
+              <option value="2">Fevereiro</option>
+              <option value="3">Março</option>
+              <option value="4">Abril</option>
+              <option value="5">Maio</option>
+              <option value="6">Junho</option>
+              <option value="7">Julho</option>
+              <option value="8">Agosto</option>
+              <option value="9">Setembro</option>
+              <option value="10">Outubro</option>
+              <option value="11">Novembro</option>
+              <option value="12">Dezembro</option>
+            </select>
+            <select id="filterVencAno" title="Ano do vencimento" aria-label="Ano do vencimento">
+              <option value="">Todos os anos</option>
+            </select>
+            <select id="filterVencCampo" title="Tipo de vencimento" aria-label="Tipo de vencimento">
+              <option value="recarga">Venc. recarga</option>
+              <option value="th">Venc. TH</option>
+              <option value="ambos">Recarga ou TH</option>
+            </select>
             <select id="filterStatus">
               <option value="">Todos os status</option>
               <option value="Válido">Válidos</option>

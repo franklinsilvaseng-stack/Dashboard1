@@ -70,6 +70,25 @@ let cargaFilter = "";
 let tipoFilter = "";
 let tipoRecargaFilter = "";
 let thStatusFilter = "";
+let vencMesFilter = "";
+let vencAnoFilter = "";
+let vencCampoFilter = "recarga";
+
+const MESES_PT = [
+  "",
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
 
 function parseDate(br) {
   if (!br) return null;
@@ -469,12 +488,31 @@ function normalizeConformidade(list) {
   });
 }
 
+function matchesMonthYear(dateBr, month, year) {
+  const d = parseDate(dateBr);
+  if (!d) return false;
+  if (month && d.getMonth() + 1 !== Number(month)) return false;
+  if (year && d.getFullYear() !== Number(year)) return false;
+  return true;
+}
+
+function matchesVencimentoPeriodo(e) {
+  if (!vencMesFilter && !vencAnoFilter) return true;
+  const th = applyValidadeTH(e);
+  const recOk = matchesMonthYear(e.proximaRecarga, vencMesFilter, vencAnoFilter);
+  const thOk = matchesMonthYear(th.proximoTH, vencMesFilter, vencAnoFilter);
+  if (vencCampoFilter === "th") return thOk;
+  if (vencCampoFilter === "ambos") return recOk || thOk;
+  return recOk;
+}
+
 function filtered() {
   return EXTINTORES.filter((e) => {
     if (dptoFilter && e.dpto !== dptoFilter) return false;
     if (statusFilter && e.validadeRecarga !== statusFilter) return false;
     if (cargaFilter && String(e.cargaKg) !== String(cargaFilter)) return false;
     if (tipoFilter && normalizeTipo(e.tipo) !== tipoFilter) return false;
+    if (!matchesVencimentoPeriodo(e)) return false;
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
       const blob = `${e.num} ${e.local} ${e.dpto} ${e.tipo} ${e.cargaKg}`.toLowerCase();
@@ -744,10 +782,45 @@ function refreshDashboard() {
   updateInsight(data);
 }
 
+function updateExtFilterCount(total) {
+  const el = document.getElementById("extFilterCount");
+  if (!el) return;
+  const hasPeriodo = Boolean(vencMesFilter || vencAnoFilter);
+  if (!hasPeriodo) {
+    el.textContent = `${total} extintor(es) no filtro atual · escolha mês/ano para ver quem vence`;
+    return;
+  }
+  const mesLabel = vencMesFilter ? MESES_PT[Number(vencMesFilter)] : "qualquer mês";
+  const anoLabel = vencAnoFilter || "qualquer ano";
+  const campoLabel =
+    vencCampoFilter === "th" ? "teste hidrostático" : vencCampoFilter === "ambos" ? "recarga ou TH" : "recarga";
+  el.textContent =
+    total === 0
+      ? `Nenhum extintor com vencimento de ${campoLabel} em ${mesLabel}/${anoLabel}`
+      : `${total} extintor(es) com vencimento de ${campoLabel} em ${mesLabel}/${anoLabel}`;
+}
+
 function renderTable() {
-  const data = filtered().slice().sort((a, b) => a.num - b.num);
-  document.getElementById("tableBody").innerHTML = data.map((e) => {
+  const hasPeriodo = Boolean(vencMesFilter || vencAnoFilter);
+  const data = filtered().slice().sort((a, b) => {
+    if (hasPeriodo) {
+      const da = parseDate(a.proximaRecarga)?.getTime() || 0;
+      const db = parseDate(b.proximaRecarga)?.getTime() || 0;
+      if (da !== db) return da - db;
+    }
+    return a.num - b.num;
+  });
+  updateExtFilterCount(data.length);
+  const tbody = document.getElementById("tableBody");
+  if (!tbody) return;
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="11" class="table-empty">Nenhum extintor encontrado com os filtros selecionados.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map((e) => {
     const th = applyValidadeTH(e);
+    const recMatch = hasPeriodo && matchesMonthYear(e.proximaRecarga, vencMesFilter, vencAnoFilter);
+    const thMatch = hasPeriodo && matchesMonthYear(th.proximoTH, vencMesFilter, vencAnoFilter);
     return `
     <tr>
       <td>${e.num}</td>
@@ -757,10 +830,10 @@ function renderTable() {
       <td>${e.cargaKg} kg</td>
       <td>${e.dataRecarga || "—"}</td>
       <td><span class="status-pill ${e.validadeRecarga === "Válido" ? "valido" : "vencido"}">${e.validadeRecarga === "Válido" ? "Válido" : "Para recarga"}</span></td>
-      <td>${e.proximaRecarga || "—"}</td>
+      <td class="${recMatch ? "cell-venc-match" : ""}">${e.proximaRecarga || "—"}</td>
       <td>${th.dataUltimoTH || "Sem ensaio"}</td>
       <td><span class="status-pill ${th.statusTH === "Válido" ? "valido" : "vencido"}">${th.statusTH}</span></td>
-      <td>${th.proximoTH || "—"}</td>
+      <td class="${thMatch ? "cell-venc-match" : ""}">${th.proximoTH || "—"}</td>
     </tr>`;
   }).join("");
 }
@@ -1907,6 +1980,31 @@ function populateFilters() {
       tipoFilter
     );
   }
+
+  const anoSelect = document.getElementById("filterVencAno");
+  if (anoSelect) {
+    const years = new Set();
+    const nowY = new Date().getFullYear();
+    years.add(nowY);
+    years.add(nowY + 1);
+    EXTINTORES.forEach((e) => {
+      const th = applyValidadeTH(e);
+      [e.proximaRecarga, th.proximoTH].forEach((br) => {
+        const d = parseDate(br);
+        if (d) years.add(d.getFullYear());
+      });
+    });
+    const curAno = vencAnoFilter || anoSelect.value;
+    anoSelect.innerHTML = '<option value="">Todos os anos</option>';
+    [...years].sort((a, b) => a - b).forEach((y) => {
+      const opt = document.createElement("option");
+      opt.value = String(y);
+      opt.textContent = String(y);
+      anoSelect.appendChild(opt);
+    });
+    if ([...years].map(String).includes(String(curAno))) anoSelect.value = String(curAno);
+    else anoSelect.value = "";
+  }
 }
 
 
@@ -2159,6 +2257,21 @@ function bindEvents() {
 
   document.getElementById("filterTipo").addEventListener("change", (e) => {
     tipoFilter = e.target.value;
+    renderTable();
+  });
+
+  document.getElementById("filterVencMes")?.addEventListener("change", (e) => {
+    vencMesFilter = e.target.value;
+    renderTable();
+  });
+
+  document.getElementById("filterVencAno")?.addEventListener("change", (e) => {
+    vencAnoFilter = e.target.value;
+    renderTable();
+  });
+
+  document.getElementById("filterVencCampo")?.addEventListener("change", (e) => {
+    vencCampoFilter = e.target.value || "recarga";
     renderTable();
   });
 
