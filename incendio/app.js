@@ -2168,6 +2168,7 @@ function preparePrintMeta() {
 function restoreAfterPrint() {
   clearPrintFit();
   clearPrintTableUnlock();
+  restoreChartSnapshots();
   document.body.classList.remove("is-printing", "print-list", "print-dashboard");
   // Re-renderiza a tela atual para gráficos/layout voltarem ao normal na web
   requestAnimationFrame(() => {
@@ -2209,30 +2210,47 @@ function clearPrintTableUnlock() {
   });
 }
 
+/** Congela Chart.js em <img> — canvas costuma sair em branco/deformado no print. */
+function snapshotChartsForPrint() {
+  restoreChartSnapshots();
+  document.querySelectorAll("canvas").forEach((canvas) => {
+    if (!canvas.width || !canvas.height) return;
+    try {
+      const img = document.createElement("img");
+      img.className = "print-chart-img";
+      img.alt = "";
+      img.src = canvas.toDataURL("image/png", 1.0);
+      img.setAttribute("data-print-snap", "1");
+      canvas.setAttribute("data-print-hidden", "1");
+      canvas.parentNode.insertBefore(img, canvas);
+    } catch (_) {}
+  });
+}
+
+function restoreChartSnapshots() {
+  document.querySelectorAll("img.print-chart-img, img[data-print-snap]").forEach((img) => img.remove());
+  document.querySelectorAll("canvas[data-print-hidden]").forEach((canvas) => {
+    canvas.removeAttribute("data-print-hidden");
+  });
+}
+
 function printGestaoAVista() {
   preparePrintMeta();
   if (PRINT_LIST_PAGES.has(currentPage)) unlockPrintTables();
-  // Impressao usa apenas @media print (nao altera layout da web)
-  window.print();
+  // Captura o painel organizado da tela (mesma referência visual) antes do diálogo
+  snapshotChartsForPrint();
+  document.body.classList.add("is-printing");
+  window.setTimeout(() => window.print(), 80);
 }
 
 window.addEventListener("beforeprint", () => {
   preparePrintMeta();
   document.body.classList.add("is-printing");
   if (PRINT_LIST_PAGES.has(currentPage)) unlockPrintTables();
-  // Dashboard: recria gráficos já no layout de impressão (evita donut deformado)
-  if (currentPage === "dashboard") {
-    try { refreshDashboard(); } catch (_) {}
+  // Se veio de Ctrl+P sem snapshot, captura agora (sem recriar gráficos)
+  if (!document.querySelector("img.print-chart-img")) {
+    snapshotChartsForPrint();
   }
-  const fitCharts = () => {
-    Object.values(charts).forEach((c) => {
-      try { c?.resize?.(); } catch (_) {}
-    });
-  };
-  requestAnimationFrame(() => {
-    fitCharts();
-    requestAnimationFrame(fitCharts);
-  });
 });
 
 window.addEventListener("afterprint", () => {

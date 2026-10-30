@@ -2104,15 +2104,32 @@ th {
     max-height: 90px !important;
   }
 
+  /* Snapshots de gráfico (img) — fiéis ao painel da tela */
+  .print-chart-img,
+  img[data-print-snap] {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  canvas[data-print-hidden="1"] {
+    display: none !important;
+  }
+
   /* =========================================================
-     Dashboard impresso = modelo PDF (4 KPIs + grade 2x2 estável)
-     Evita display:contents (deforma no Chrome print)
+     Dashboard impresso = painel organizado (referência da tela)
+     4 KPIs + 4 gráficos na mesma linha
      ========================================================= */
   body.print-dashboard .main,
   body:has(#page-dashboard.page.active) .main {
     max-height: 196mm !important;
     height: 196mm !important;
-    gap: 8px !important;
+    gap: 7px !important;
     overflow: hidden !important;
   }
 
@@ -2139,22 +2156,24 @@ th {
   #page-dashboard.page.active .kpi-card {
     display: flex !important;
     flex-direction: column !important;
-    padding: 10px 12px 6px !important;
-    min-height: 88px !important;
+    padding: 8px 10px 4px !important;
+    min-height: 78px !important;
   }
 
   body.print-dashboard #page-dashboard .kpi-card strong,
   #page-dashboard.page.active .kpi-card strong {
-    font-size: 1.5rem !important;
-    margin: 4px 0 2px !important;
+    font-size: 1.4rem !important;
+    margin: 2px 0 !important;
   }
 
   body.print-dashboard #page-dashboard .sparkline,
-  #page-dashboard.page.active .sparkline {
+  #page-dashboard.page.active .sparkline,
+  body.print-dashboard #page-dashboard .kpi-card .print-chart-img,
+  #page-dashboard.page.active .kpi-card .print-chart-img {
     display: block !important;
     width: 100% !important;
-    height: 26px !important;
-    max-height: 26px !important;
+    height: 24px !important;
+    max-height: 24px !important;
     margin-top: auto !important;
     opacity: 1 !important;
   }
@@ -2162,8 +2181,8 @@ th {
   body.print-dashboard #page-dashboard .analytics-grid,
   #page-dashboard.page.active .analytics-grid {
     display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    grid-template-rows: 1fr 1fr !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
     gap: 8px !important;
     flex: 1 1 auto !important;
     min-height: 0 !important;
@@ -2175,8 +2194,8 @@ th {
     display: flex !important;
     flex-direction: column !important;
     min-height: 0 !important;
-    height: auto !important;
-    padding: 8px 10px !important;
+    height: 100% !important;
+    padding: 8px 9px !important;
     overflow: hidden !important;
   }
 
@@ -2187,10 +2206,21 @@ th {
     display: none !important;
   }
 
+  body.print-dashboard #page-dashboard .card-head,
+  #page-dashboard.page.active .card-head {
+    flex-shrink: 0 !important;
+    margin-bottom: 4px !important;
+  }
+
+  body.print-dashboard #page-dashboard .card-head h2,
+  #page-dashboard.page.active .card-head h2 {
+    font-size: 0.74rem !important;
+  }
+
   body.print-dashboard #page-dashboard .card-head .sub,
   #page-dashboard.page.active .card-head .sub {
     display: block !important;
-    font-size: 0.58rem !important;
+    font-size: 0.56rem !important;
     color: #666 !important;
     margin: 0 !important;
     max-height: none !important;
@@ -2203,9 +2233,10 @@ th {
   body.print-dashboard #page-dashboard .chart-wrap--area,
   #page-dashboard.page.active .chart-wrap--bar,
   #page-dashboard.page.active .chart-wrap--area {
+    position: relative !important;
     flex: 1 1 auto !important;
     height: auto !important;
-    min-height: 120px !important;
+    min-height: 140px !important;
     max-height: none !important;
   }
 
@@ -2213,12 +2244,12 @@ th {
   #page-dashboard.page.active .donut-layout {
     flex: 1 1 auto !important;
     display: flex !important;
-    flex-direction: row !important;
+    flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 12px !important;
+    gap: 8px !important;
     height: auto !important;
-    min-height: 120px !important;
+    min-height: 140px !important;
     max-height: none !important;
     overflow: hidden !important;
   }
@@ -2226,19 +2257,30 @@ th {
   body.print-dashboard #page-dashboard .chart-wrap--donut,
   #page-dashboard.page.active .chart-wrap--donut {
     position: relative !important;
-    width: 118px !important;
-    height: 118px !important;
-    max-width: 118px !important;
-    max-height: 118px !important;
-    flex: 0 0 118px !important;
-    margin: 0 !important;
+    width: 112px !important;
+    height: 112px !important;
+    max-width: 112px !important;
+    max-height: 112px !important;
+    flex: 0 0 112px !important;
+    margin: 0 auto !important;
     overflow: hidden !important;
   }
 
-  body.print-dashboard #page-dashboard .chart-wrap--donut canvas,
-  #page-dashboard.page.active .chart-wrap--donut canvas {
-    width: 118px !important;
-    height: 118px !important;
+  body.print-dashboard #page-dashboard .chart-wrap--donut .print-chart-img,
+  #page-dashboard.page.active .chart-wrap--donut .print-chart-img {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  body.print-dashboard #page-dashboard .legend-list,
+  #page-dashboard.page.active .legend-list {
+    width: 100% !important;
+    flex: 0 0 auto !important;
+    gap: 4px !important;
+    overflow: visible !important;
+    font-size: 0.58rem !important;
   }
 
   body.print-dashboard #page-dashboard .goal-list,
@@ -2246,15 +2288,15 @@ th {
     flex: 1 1 auto !important;
     max-height: none !important;
     overflow: hidden !important;
-    gap: 6px !important;
+    gap: 5px !important;
   }
 
   body.print-dashboard #page-dashboard .goal-item,
   body.print-dashboard #page-dashboard .goal-list li,
   #page-dashboard.page.active .goal-item,
   #page-dashboard.page.active .goal-list li {
-    padding: 5px 7px !important;
-    font-size: 0.68rem !important;
+    padding: 4px 6px !important;
+    font-size: 0.62rem !important;
   }
 }
 
