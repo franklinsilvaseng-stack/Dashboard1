@@ -2117,9 +2117,44 @@ function clearPrintFit() {
   });
 }
 
+const PRINT_LIST_PAGES = new Set([
+  "extintores",
+  "recargas",
+  "th",
+  "vencimentos",
+  "locais",
+  "departamentos",
+  "orcamento",
+  "relatorios",
+  "dados",
+]);
+
+function preparePrintMeta() {
+  const titleEl = document.getElementById("printPageTitle");
+  const dateEl = document.getElementById("printDateStamp");
+  let title = PRINT_TITLES[currentPage] || "Painel FireBoard";
+  if (currentPage === "extintores") {
+    const countEl = document.getElementById("extFilterCount");
+    const countText = countEl?.textContent?.trim();
+    if (countText) title = `${title} — ${countText}`;
+  }
+  if (titleEl) titleEl.textContent = title;
+  if (dateEl) {
+    dateEl.textContent = new Date().toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+  document.body.classList.toggle("print-list", PRINT_LIST_PAGES.has(currentPage));
+  document.body.classList.toggle("print-dashboard", !PRINT_LIST_PAGES.has(currentPage));
+}
+
 function restoreAfterPrint() {
   clearPrintFit();
-  document.body.classList.remove("is-printing");
+  document.body.classList.remove("is-printing", "print-list", "print-dashboard");
   // Re-renderiza a tela atual para gráficos/layout voltarem ao normal na web
   requestAnimationFrame(() => {
     try {
@@ -2133,35 +2168,13 @@ function restoreAfterPrint() {
 }
 
 function printGestaoAVista() {
-  const titleEl = document.getElementById("printPageTitle");
-  const dateEl = document.getElementById("printDateStamp");
-  if (titleEl) titleEl.textContent = PRINT_TITLES[currentPage] || "Painel FireBoard";
-  if (dateEl) {
-    dateEl.textContent = new Date().toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
+  preparePrintMeta();
   // Impressao usa apenas @media print (nao altera layout da web)
   window.print();
 }
 
 window.addEventListener("beforeprint", () => {
-  const titleEl = document.getElementById("printPageTitle");
-  const dateEl = document.getElementById("printDateStamp");
-  if (titleEl) titleEl.textContent = PRINT_TITLES[currentPage] || "Painel FireBoard";
-  if (dateEl) {
-    dateEl.textContent = new Date().toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
+  preparePrintMeta();
   document.body.classList.add("is-printing");
   // Ajusta canvas aos containers compactos do layout de impressao
   Object.values(charts).forEach((c) => {

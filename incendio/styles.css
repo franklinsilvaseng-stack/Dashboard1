@@ -1896,6 +1896,77 @@ th {
     padding: 0 4px !important;
   }
 
+  /* Listas/tabelas (ex.: inventário filtrado): imprimir tudo, sem corte de 1 página */
+  body.print-list .main,
+  body.print-list .page.active {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    page-break-after: auto !important;
+    flex: none !important;
+  }
+
+  body.print-list .table-wrap,
+  body.print-list .table-card,
+  body.print-list .card {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  body.print-list #extFilterCount,
+  body.print-list .page-head .sub {
+    display: block !important;
+    color: #333 !important;
+    font-size: 0.72rem !important;
+    margin: 2px 0 6px !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  body.print-list .page-head {
+    display: block !important;
+    margin-bottom: 4px !important;
+  }
+
+  body.print-list table {
+    font-size: 0.7rem !important;
+  }
+
+  body.print-list th,
+  body.print-list td {
+    padding: 3px 5px !important;
+  }
+
+  body.print-list thead {
+    display: table-header-group !important;
+  }
+
+  body.print-list tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  body.print-list .cell-venc-match {
+    color: #c45a00 !important;
+    background: rgba(255, 122, 0, 0.14) !important;
+    font-weight: 700 !important;
+  }
+
+  body.print-list .print-banner-meta span:first-child {
+    max-width: 420px;
+    white-space: normal !important;
+    text-align: right;
+    font-size: 0.62rem !important;
+    line-height: 1.25 !important;
+  }
+
   /* Rodape analitico compacto */
   .insight {
     display: flex !important;
