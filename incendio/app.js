@@ -506,9 +506,22 @@ function matchesVencimentoPeriodo(e) {
   return recOk;
 }
 
+/** Filtro do dashboard (departamento + busca). Não usa filtros do inventário. */
 function filtered() {
   return EXTINTORES.filter((e) => {
     if (dptoFilter && e.dpto !== dptoFilter) return false;
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      const blob = `${e.num} ${e.local} ${e.dpto} ${e.tipo} ${e.cargaKg}`.toLowerCase();
+      if (!blob.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/** Filtro exclusivo do inventário (mês/ano, status, carga, tipo). */
+function filteredInventory() {
+  return EXTINTORES.filter((e) => {
     if (statusFilter && e.validadeRecarga !== statusFilter) return false;
     if (cargaFilter && String(e.cargaKg) !== String(cargaFilter)) return false;
     if (tipoFilter && normalizeTipo(e.tipo) !== tipoFilter) return false;
@@ -802,7 +815,7 @@ function updateExtFilterCount(total) {
 
 function renderTable() {
   const hasPeriodo = Boolean(vencMesFilter || vencAnoFilter);
-  const data = filtered().slice().sort((a, b) => {
+  const data = filteredInventory().slice().sort((a, b) => {
     if (hasPeriodo) {
       const da = parseDate(a.proximaRecarga)?.getTime() || 0;
       const db = parseDate(b.proximaRecarga)?.getTime() || 0;
@@ -2176,9 +2189,15 @@ function printGestaoAVista() {
 window.addEventListener("beforeprint", () => {
   preparePrintMeta();
   document.body.classList.add("is-printing");
-  // Ajusta canvas aos containers compactos do layout de impressao
-  Object.values(charts).forEach((c) => {
-    try { c?.resize?.(); } catch (_) {}
+  // Dashboard: re-renderiza com inventário completo (não herda filtro mês/ano)
+  if (currentPage === "dashboard") {
+    try { refreshDashboard(); } catch (_) {}
+  }
+  // Ajusta canvas aos containers do layout de impressao (apos o CSS print aplicar)
+  requestAnimationFrame(() => {
+    Object.values(charts).forEach((c) => {
+      try { c?.resize?.(); } catch (_) {}
+    });
   });
 });
 
