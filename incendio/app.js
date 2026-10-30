@@ -2167,6 +2167,7 @@ function preparePrintMeta() {
 
 function restoreAfterPrint() {
   clearPrintFit();
+  clearPrintTableUnlock();
   document.body.classList.remove("is-printing", "print-list", "print-dashboard");
   // Re-renderiza a tela atual para gráficos/layout voltarem ao normal na web
   requestAnimationFrame(() => {
@@ -2180,8 +2181,37 @@ function restoreAfterPrint() {
   });
 }
 
+function unlockPrintTables() {
+  // Garante que o inventário filtrado não fique preso em max-height de tela/impressão
+  document.querySelectorAll(
+    "#page-extintores .table-wrap, #page-recargas .table-wrap, #page-th .table-wrap, #page-vencimentos .table-wrap"
+  ).forEach((el) => {
+    el.style.maxHeight = "none";
+    el.style.height = "auto";
+    el.style.overflow = "visible";
+  });
+  document.querySelectorAll(".main, .page.active, .table-card").forEach((el) => {
+    if (!el.closest("#page-dashboard") && !el.closest("#page-projecao")) {
+      el.style.maxHeight = "none";
+      el.style.overflow = "visible";
+      el.style.height = "auto";
+    }
+  });
+}
+
+function clearPrintTableUnlock() {
+  document.querySelectorAll(
+    "#page-extintores .table-wrap, #page-recargas .table-wrap, #page-th .table-wrap, #page-vencimentos .table-wrap, .main, .page.active, .table-card"
+  ).forEach((el) => {
+    el.style.maxHeight = "";
+    el.style.height = "";
+    el.style.overflow = "";
+  });
+}
+
 function printGestaoAVista() {
   preparePrintMeta();
+  if (PRINT_LIST_PAGES.has(currentPage)) unlockPrintTables();
   // Impressao usa apenas @media print (nao altera layout da web)
   window.print();
 }
@@ -2189,6 +2219,7 @@ function printGestaoAVista() {
 window.addEventListener("beforeprint", () => {
   preparePrintMeta();
   document.body.classList.add("is-printing");
+  if (PRINT_LIST_PAGES.has(currentPage)) unlockPrintTables();
   // Dashboard: re-renderiza com inventário completo (não herda filtro mês/ano)
   if (currentPage === "dashboard") {
     try { refreshDashboard(); } catch (_) {}

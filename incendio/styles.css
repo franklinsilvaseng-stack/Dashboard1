@@ -1866,7 +1866,8 @@ th {
     margin-top: 3px !important;
   }
 
-  .table-wrap {
+  /* Tabelas compactas só no dashboard/projeção (1 página) */
+  body.print-dashboard .table-wrap {
     max-height: 110px !important;
     overflow: hidden !important;
   }
@@ -1896,9 +1897,18 @@ th {
     padding: 0 4px !important;
   }
 
-  /* Listas/tabelas (ex.: inventário filtrado): imprimir tudo, sem corte de 1 página */
+  /*
+    Inventário / listas: SEMPRE imprimir todas as linhas do filtro.
+    Usa a página .active (não depende só de body.print-list).
+  */
   body.print-list .main,
-  body.print-list .page.active {
+  body.print-list .page.active,
+  #page-extintores.page.active,
+  #page-recargas.page.active,
+  #page-th.page.active,
+  #page-vencimentos.page.active,
+  #page-orcamento.page.active,
+  #page-relatorios.page.active {
     max-height: none !important;
     height: auto !important;
     overflow: visible !important;
@@ -1908,6 +1918,25 @@ th {
     flex: none !important;
   }
 
+  body.print-list .main,
+  body:has(#page-extintores.page.active) .main,
+  body:has(#page-recargas.page.active) .main,
+  body:has(#page-th.page.active) .main,
+  body:has(#page-vencimentos.page.active) .main {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    page-break-after: auto !important;
+  }
+
+  #page-extintores.page.active .table-wrap,
+  #page-extintores.page.active .table-card,
+  #page-extintores.page.active .card,
+  #page-recargas.page.active .table-wrap,
+  #page-recargas.page.active .table-card,
+  #page-th.page.active .table-wrap,
+  #page-th.page.active .table-card,
+  #page-vencimentos.page.active .table-wrap,
   body.print-list .table-wrap,
   body.print-list .table-card,
   body.print-list .card {
@@ -1918,6 +1947,8 @@ th {
     page-break-inside: auto !important;
   }
 
+  #page-extintores.page.active #extFilterCount,
+  #page-extintores.page.active .page-head .sub,
   body.print-list #extFilterCount,
   body.print-list .page-head .sub {
     display: block !important;
@@ -1930,37 +1961,47 @@ th {
     padding: 0 !important;
   }
 
+  #page-extintores.page.active .page-head,
   body.print-list .page-head {
     display: block !important;
     margin-bottom: 4px !important;
   }
 
+  #page-extintores.page.active table,
   body.print-list table {
-    font-size: 0.7rem !important;
+    font-size: 0.68rem !important;
+    width: 100% !important;
   }
 
+  #page-extintores.page.active th,
+  #page-extintores.page.active td,
   body.print-list th,
   body.print-list td {
-    padding: 3px 5px !important;
+    padding: 4px 5px !important;
+    white-space: nowrap !important;
   }
 
+  #page-extintores.page.active thead,
   body.print-list thead {
     display: table-header-group !important;
   }
 
+  #page-extintores.page.active tr,
   body.print-list tr {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
 
+  #page-extintores.page.active .cell-venc-match,
   body.print-list .cell-venc-match {
     color: #c45a00 !important;
     background: rgba(255, 122, 0, 0.14) !important;
     font-weight: 700 !important;
   }
 
-  body.print-list .print-banner-meta span:first-child {
-    max-width: 420px;
+  body.print-list .print-banner-meta span:first-child,
+  body:has(#page-extintores.page.active) .print-banner-meta span:first-child {
+    max-width: 460px;
     white-space: normal !important;
     text-align: right;
     font-size: 0.62rem !important;
