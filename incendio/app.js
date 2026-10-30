@@ -647,6 +647,8 @@ function renderLocaisChart(data) {
   if (typeof Chart === "undefined") return;
   const map = countBy(data, (e) => e.local);
   const labels = Object.keys(map).sort((a, b) => map[b] - map[a]);
+  const many = labels.length > 8;
+  const maxLen = many ? 14 : 22;
 
   charts.locais = new Chart(document.getElementById("chartLocais"), {
     type: "bar",
@@ -656,26 +658,36 @@ function renderLocaisChart(data) {
         data: labels.map((l) => map[l]),
         backgroundColor: COLORS.orange,
         borderRadius: 8,
-        maxBarThickness: 28,
+        maxBarThickness: many ? 22 : 28,
       }],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { bottom: 6 } },
-      plugins: { legend: { display: false } },
+      layout: { padding: { bottom: many ? 10 : 6 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title(items) {
+              const i = items?.[0]?.dataIndex;
+              return i == null ? "" : labels[i];
+            },
+          },
+        },
+      },
       scales: {
         x: {
           ticks: {
             color: COLORS.muted,
-            maxRotation: 40,
-            minRotation: 20,
-            autoSkip: true,
-            maxTicksLimit: 7,
-            font: { size: 9 },
+            autoSkip: false,
+            maxRotation: 55,
+            minRotation: 45,
+            font: { size: many ? 8 : 9 },
             callback(value) {
               const label = this.getLabelForValue(value);
-              return label && label.length > 16 ? label.slice(0, 15) + "…" : label;
+              if (!label) return "";
+              return label.length > maxLen ? `${label.slice(0, maxLen - 1)}…` : label;
             },
           },
           grid: { display: false },
